@@ -27,6 +27,7 @@ import { deriveBpmTiming } from "@/lib/bpm";
 import { DanceVideo, PracticeSection, useVideos } from "@/lib/videos";
 
 const speeds = [0.5, 0.75, 1, 1.25];
+const fallbackCountSeconds = 60 / 100;
 
 export default function VideoPracticeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -78,8 +79,7 @@ export default function VideoPracticeScreen() {
   }
 
   const selectedVideo = video;
-  const countSeconds = video.countSeconds;
-  const canJumpByCount = countSeconds != null;
+  const countSeconds = video.countSeconds ?? fallbackCountSeconds;
 
   function hapticTap() {
     if (process.env.EXPO_OS === "ios") {
@@ -103,10 +103,6 @@ export default function VideoPracticeScreen() {
   }
 
   function jumpCounts(counts: number) {
-    if (countSeconds == null) {
-      return;
-    }
-
     jump(countSeconds * counts);
   }
 
@@ -211,13 +207,11 @@ export default function VideoPracticeScreen() {
           <IconButton
             icon={SkipBack}
             label="Back one count"
-            disabled={!canJumpByCount}
             onPress={() => jumpCounts(-1)}
           />
           <IconButton
             icon={SkipBack}
             label="Back eight count"
-            disabled={!canJumpByCount}
             onPress={() => jumpCounts(-8)}
           />
           <IconButton
@@ -230,13 +224,11 @@ export default function VideoPracticeScreen() {
           <IconButton
             icon={SkipForward}
             label="Forward one count"
-            disabled={!canJumpByCount}
             onPress={() => jumpCounts(1)}
           />
           <IconButton
             icon={SkipForward}
             label="Forward eight count"
-            disabled={!canJumpByCount}
             onPress={() => jumpCounts(8)}
           />
         </View>
