@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import {
+  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -8,9 +9,10 @@ import {
   TextInput,
   View,
 } from "react-native";
+import * as DocumentPicker from "expo-document-picker";
 import { Image } from "expo-image";
 import { Link, Stack } from "expo-router";
-import { Plus, Search, X } from "lucide-react-native";
+import { FileVideo, Plus, Search, X } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { IconButton } from "@/components/icon-button";
 import { DanceVideo, useVideos } from "@/lib/videos";
@@ -20,6 +22,7 @@ const emptyVideo = {
   style: "",
   teacher: "",
   sourceUri: "",
+  sourceName: "",
   thumbnailUri: "",
   bpm: "100",
 };
@@ -40,9 +43,42 @@ export default function LibraryScreen() {
     });
   }, [onlyBookmarked, query, videos]);
 
-  function openAdd() {
-    setDraft(emptyVideo);
-    setShowAdd(true);
+  async function openAdd() {
+    await pickVideo({ openSheet: true });
+  }
+
+  async function pickVideo({ openSheet = false } = {}) {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "video/*",
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      const title = titleFromFileName(asset.name);
+
+      setDraft((current) => {
+        const baseDraft = openSheet ? emptyVideo : current;
+
+        return {
+          ...baseDraft,
+          title: baseDraft.title.trim() ? baseDraft.title : title,
+          sourceUri: asset.uri,
+          sourceName: asset.name,
+        };
+      });
+
+      if (openSheet) {
+        setShowAdd(true);
+      }
+    } catch {
+      Alert.alert("Could not pick video", "Please try selecting the video again.");
+    }
   }
 
   function saveDraft() {
@@ -153,7 +189,11 @@ export default function LibraryScreen() {
           <VideoField label="Title" value={draft.title} onChangeText={(title) => setDraft({ ...draft, title })} />
           <VideoField label="Style" value={draft.style} onChangeText={(style) => setDraft({ ...draft, style })} />
           <VideoField label="Teacher" value={draft.teacher} onChangeText={(teacher) => setDraft({ ...draft, teacher })} />
-          <VideoField label="Video URL" value={draft.sourceUri} onChangeText={(sourceUri) => setDraft({ ...draft, sourceUri })} />
+          <PickerField
+            label="Video"
+            value={draft.sourceName || draft.sourceUri}
+            onPress={() => pickVideo()}
+          />
           <VideoField label="Thumbnail URL" value={draft.thumbnailUri} onChangeText={(thumbnailUri) => setDraft({ ...draft, thumbnailUri })} />
           <VideoField
             label="BPM"
@@ -180,6 +220,10 @@ export default function LibraryScreen() {
       </Modal>
     </>
   );
+}
+
+function titleFromFileName(name: string) {
+  return name.replace(/\.[^/.]+$/, "").replace(/[-_]+/g, " ").trim() || "Untitled video";
 }
 
 function VideoCard({ video }: { video: DanceVideo }) {
@@ -237,6 +281,49 @@ function Pill({ label }: { label: string }) {
       <Text selectable style={{ color: "#405043", fontSize: 12, fontWeight: "600" }}>
         {label}
       </Text>
+    </View>
+  );
+}
+
+function PickerField({
+  label,
+  value,
+  onPress,
+}: {
+  label: string;
+  value: string;
+  onPress: () => void;
+}) {
+  return (
+    <View style={{ gap: 6 }}>
+      <Text selectable style={{ color: "#625a51", fontSize: 13, fontWeight: "600" }}>
+        {label}
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={onPress}
+        style={({ pressed }) => ({
+          minHeight: 48,
+          paddingHorizontal: 14,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 10,
+          borderRadius: 12,
+          borderCurve: "continuous",
+          backgroundColor: "#ffffff",
+          borderWidth: 1,
+          borderColor: "#d8d1c7",
+          opacity: pressed ? 0.78 : 1,
+        })}
+      >
+        <FileVideo size={18} color="#625a51" />
+        <Text
+          numberOfLines={1}
+          style={{ flex: 1, color: value ? "#1f2a2e" : "#8f867b", fontSize: 16 }}
+        >
+          {value || "Choose video"}
+        </Text>
+      </Pressable>
     </View>
   );
 }
