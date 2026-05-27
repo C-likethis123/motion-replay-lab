@@ -4,6 +4,16 @@
 
 Replace manual numeric BPM entry with on-device BPM detection when a video is added or changed. If detection is unavailable or low-confidence, provide a tap-tempo fallback instead of a BPM text field. The detected or tapped BPM remains the source for `countSeconds`, count jumps, eight-count jumps, and BPM display.
 
+## Tickets
+
+Split implementation work is tracked in:
+
+- `plans/tickets/derive-bpm-01-data-model-and-plumbing.md`
+- `plans/tickets/derive-bpm-02-audio-extract-and-bpm-detect.md`
+- `plans/tickets/derive-bpm-03-add-edit-flow-ui.md`
+- `plans/tickets/derive-bpm-04-playback-ui-and-jumps.md`
+- `plans/tickets/derive-bpm-05-manual-qa-regression.md`
+
 ## Key Changes
 
 - Add a local Expo native module, `DanceAudioAnalysis`, because the current Expo app only has playback APIs and no decoded audio sample access.
