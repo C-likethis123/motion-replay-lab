@@ -7,6 +7,7 @@ type IconButtonProps = {
   icon: ComponentType<LucideProps>;
   label: string;
   onPress: () => void;
+  disabled?: boolean;
   tone?: "primary" | "plain" | "danger";
   style?: ViewStyle;
 };
@@ -33,6 +34,7 @@ export function IconButton({
   icon: Icon,
   label,
   onPress,
+  disabled = false,
   tone = "plain",
   style,
 }: IconButtonProps) {
@@ -42,6 +44,8 @@ export function IconButton({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
         {

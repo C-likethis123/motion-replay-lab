@@ -15,6 +15,7 @@ import { Link, Stack } from "expo-router";
 import { FileVideo, Plus, Search, X } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { IconButton } from "@/components/icon-button";
+import { deriveBpmTiming, formatBpm } from "@/lib/bpm";
 import { DanceVideo, useVideos } from "@/lib/videos";
 
 const emptyVideo = {
@@ -94,8 +95,7 @@ export default function LibraryScreen() {
       thumbnailUri:
         draft.thumbnailUri.trim() ||
         "https://images.unsplash.com/photo-1519925610903-381054cc2a1c?auto=format&fit=crop&w=900&q=80",
-      bpm: Number(draft.bpm) || 100,
-      countSeconds: 60 / (Number(draft.bpm) || 100),
+      ...deriveBpmTiming(draft.bpm),
       sections: [],
     });
     setShowAdd(false);
@@ -258,7 +258,7 @@ function VideoCard({ video }: { video: DanceVideo }) {
             </Text>
           </View>
           <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-            <Pill label={`${video.bpm} BPM`} />
+            <Pill label={formatBpm(video)} />
             <Pill label={`${video.sections.length} loops`} />
           </View>
         </View>

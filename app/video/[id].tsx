@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react-native";
 import { IconButton } from "@/components/icon-button";
+import { deriveBpmTiming } from "@/lib/bpm";
 import { DanceVideo, PracticeSection, useVideos } from "@/lib/videos";
 
 const speeds = [0.5, 0.75, 1, 1.25];
@@ -77,6 +78,8 @@ export default function VideoPracticeScreen() {
   }
 
   const selectedVideo = video;
+  const countSeconds = video.countSeconds;
+  const canJumpByCount = countSeconds != null;
 
   function hapticTap() {
     if (process.env.EXPO_OS === "ios") {
@@ -99,6 +102,14 @@ export default function VideoPracticeScreen() {
     player.seekBy(seconds);
   }
 
+  function jumpCounts(counts: number) {
+    if (countSeconds == null) {
+      return;
+    }
+
+    jump(countSeconds * counts);
+  }
+
   function jumpTo(time: number) {
     hapticTap();
     // eslint-disable-next-line react-hooks/immutability
@@ -112,8 +123,7 @@ export default function VideoPracticeScreen() {
       teacher: draft.teacher.trim() || selectedVideo.teacher,
       sourceUri: draft.sourceUri.trim() || selectedVideo.sourceUri,
       thumbnailUri: draft.thumbnailUri.trim() || selectedVideo.thumbnailUri,
-      bpm: Number(draft.bpm) || selectedVideo.bpm,
-      countSeconds: 60 / (Number(draft.bpm) || selectedVideo.bpm),
+      ...deriveBpmTiming(draft.bpm),
       sections: parseSections(draft.sections, selectedVideo.sections),
     });
     setShowEdit(false);
@@ -198,8 +208,18 @@ export default function VideoPracticeScreen() {
         </View>
 
         <View style={{ flexDirection: "row", justifyContent: "center", gap: 12 }}>
-          <IconButton icon={SkipBack} label="Back one count" onPress={() => jump(-video.countSeconds)} />
-          <IconButton icon={SkipBack} label="Back eight count" onPress={() => jump(-video.countSeconds * 8)} />
+          <IconButton
+            icon={SkipBack}
+            label="Back one count"
+            disabled={!canJumpByCount}
+            onPress={() => jumpCounts(-1)}
+          />
+          <IconButton
+            icon={SkipBack}
+            label="Back eight count"
+            disabled={!canJumpByCount}
+            onPress={() => jumpCounts(-8)}
+          />
           <IconButton
             icon={isPlaying ? Pause : Play}
             label={isPlaying ? "Pause" : "Play"}
@@ -207,8 +227,18 @@ export default function VideoPracticeScreen() {
             onPress={togglePlay}
             style={{ minWidth: 64 }}
           />
-          <IconButton icon={SkipForward} label="Forward one count" onPress={() => jump(video.countSeconds)} />
-          <IconButton icon={SkipForward} label="Forward eight count" onPress={() => jump(video.countSeconds * 8)} />
+          <IconButton
+            icon={SkipForward}
+            label="Forward one count"
+            disabled={!canJumpByCount}
+            onPress={() => jumpCounts(1)}
+          />
+          <IconButton
+            icon={SkipForward}
+            label="Forward eight count"
+            disabled={!canJumpByCount}
+            onPress={() => jumpCounts(8)}
+          />
         </View>
 
         <View
@@ -360,7 +390,7 @@ function makeDraft(video?: DanceVideo) {
     teacher: video?.teacher ?? "",
     sourceUri: video?.sourceUri ?? "",
     thumbnailUri: video?.thumbnailUri ?? "",
-    bpm: `${video?.bpm ?? 100}`,
+    bpm: video?.bpm?.toString() ?? "",
     sections:
       video?.sections.map((section) => `${section.label}, ${section.start}, ${section.end}`).join("\n") ?? "",
   };

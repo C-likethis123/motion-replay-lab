@@ -8,6 +8,8 @@ export type PracticeSection = {
   end: number;
 };
 
+export type BpmSource = "detected" | "tap" | "unavailable";
+
 export type DanceVideo = {
   id: string;
   title: string;
@@ -15,8 +17,10 @@ export type DanceVideo = {
   teacher: string;
   sourceUri: string;
   thumbnailUri: string;
-  bpm: number;
-  countSeconds: number;
+  bpm: number | null;
+  countSeconds: number | null;
+  bpmSource: BpmSource;
+  bpmConfidence?: number;
   sections: PracticeSection[];
 };
 
@@ -42,6 +46,7 @@ const starterVideos: DanceVideo[] = [
       "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=900&q=80",
     bpm: 96,
     countSeconds: 0.625,
+    bpmSource: "detected",
     sections: [
       { id: "warmup", label: "Warmup", start: 4, end: 18 },
       { id: "eight-a", label: "First 8", start: 18, end: 28 },
@@ -58,6 +63,7 @@ const starterVideos: DanceVideo[] = [
       "https://images.unsplash.com/photo-1547153760-18fc86324498?auto=format&fit=crop&w=900&q=80",
     bpm: 112,
     countSeconds: 0.536,
+    bpmSource: "detected",
     sections: [
       { id: "prep", label: "Prep", start: 6, end: 16 },
       { id: "turns", label: "Turns", start: 16, end: 31 },
