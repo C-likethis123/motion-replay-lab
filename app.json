@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Dance",
+    "slug": "dance",
+    "scheme": "dance",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#f8f4ee"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {},
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
