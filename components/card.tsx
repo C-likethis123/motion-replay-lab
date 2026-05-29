@@ -10,7 +10,7 @@ import {
   ViewProps,
   ViewStyle,
 } from "react-native";
-import { colors, opacity, radii, shadows } from "@/lib/theme";
+import { colors, opacity, radii, shadows, spacing } from "@/lib/theme";
 
 type CardRootProps = PressableProps & {
   style?: StyleProp<ViewStyle>;
@@ -44,8 +44,8 @@ const CardRoot = forwardRef<View, CardRootProps>(function CardRoot(
       style={({ pressed }) => [
         {
           flexDirection: "row",
-          gap: 12,
-          padding: 10,
+          gap: spacing.xl,
+          padding: spacing.lg,
           borderRadius: radii.lg,
           borderCurve: "continuous",
           backgroundColor: colors.surface,
@@ -144,7 +144,10 @@ function CardDescription({ children, style, ...props }: CardTextProps) {
 function CardFooter({ children, style, ...props }: ViewProps) {
   return (
     <View
-      style={[{ flexDirection: "row", gap: 8, flexWrap: "wrap" }, style]}
+      style={[
+        { flexDirection: "row", gap: spacing.md, flexWrap: "wrap" },
+        style,
+      ]}
       {...props}
     >
       {children}

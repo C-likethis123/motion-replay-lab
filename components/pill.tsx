@@ -1,11 +1,11 @@
 import { Text, View } from "react-native";
-import { colors } from "@/lib/theme";
+import { colors, spacing } from "@/lib/theme";
 
 export function Pill({ label }: { label: string }) {
   return (
     <View
       style={{
-        paddingHorizontal: 9,
+        paddingHorizontal: spacing.lg,
         minHeight: 26,
         justifyContent: "center",
         borderRadius: 13,

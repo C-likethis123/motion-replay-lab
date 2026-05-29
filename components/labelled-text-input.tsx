@@ -1,5 +1,5 @@
 import { TextInput as RnTextInput, View, Text } from "react-native";
-import { colors, radii } from "@/lib/theme";
+import { colors, radii, spacing } from "@/lib/theme";
 
 export function LabelledTextInput({
   label,
@@ -13,7 +13,7 @@ export function LabelledTextInput({
   keyboardType?: "default" | "number-pad";
 }) {
   return (
-    <View style={{ gap: 6 }}>
+    <View style={{ gap: spacing.sm }}>
       <Text
         selectable
         style={{ color: colors.textSecondary, fontSize: 13, fontWeight: "600" }}
@@ -27,7 +27,7 @@ export function LabelledTextInput({
         autoCapitalize="none"
         style={{
           minHeight: 48,
-          paddingHorizontal: 14,
+          paddingHorizontal: spacing.xxl,
           borderRadius: radii.sm,
           borderCurve: "continuous",
           backgroundColor: colors.surface,

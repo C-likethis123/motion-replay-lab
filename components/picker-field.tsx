@@ -7,7 +7,7 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import { colors, opacity, radii } from "@/lib/theme";
+import { colors, opacity, radii, spacing } from "@/lib/theme";
 
 type PickerFieldProps = Omit<PressableProps, "style"> & {
   label: string;
@@ -27,7 +27,7 @@ export function PickerField({
   ...props
 }: PickerFieldProps) {
   return (
-    <View style={{ gap: 6 }}>
+    <View style={{ gap: spacing.sm }}>
       <Text
         selectable
         style={{ color: colors.textSecondary, fontSize: 13, fontWeight: "600" }}
@@ -46,10 +46,10 @@ export function PickerField({
         style={({ pressed }) => [
           {
             minHeight: 48,
-            paddingHorizontal: 14,
+            paddingHorizontal: spacing.xxl,
             flexDirection: "row",
             alignItems: "center",
-            gap: 10,
+            gap: spacing.lg,
             borderRadius: radii.sm,
             borderCurve: "continuous",
             backgroundColor: colors.surface,

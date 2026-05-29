@@ -30,6 +30,21 @@ export const radii = {
   xl: 18,
 } as const;
 
+export const spacing = {
+  xxs: 2,
+  xs: 4,
+  sm: 6,
+  md: 8,
+  lg: 10,
+  xl: 12,
+  xxl: 14,
+  xxxl: 16,
+  screenGap: 18,
+  screen: 20,
+  screenBottom: 40,
+  screenBottomTall: 42,
+} as const;
+
 export const opacity = {
   disabled: 0.38,
   pressed: 0.72,
