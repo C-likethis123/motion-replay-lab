@@ -1,5 +1,5 @@
 import { Text, View } from "react-native";
-import { colors, spacing } from "@/lib/theme";
+import { colors, spacing, typography } from "@/lib/theme";
 
 export function Pill({ label }: { label: string }) {
   return (
@@ -14,7 +14,11 @@ export function Pill({ label }: { label: string }) {
     >
       <Text
         selectable
-        style={{ color: colors.accentText, fontSize: 12, fontWeight: "600" }}
+        style={{
+          color: colors.accentText,
+          fontSize: typography.size.xxs,
+          fontWeight: typography.weight.semibold,
+        }}
       >
         {label}
       </Text>

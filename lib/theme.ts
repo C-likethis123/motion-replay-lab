@@ -45,6 +45,25 @@ export const spacing = {
   screenBottomTall: 42,
 } as const;
 
+export const typography = {
+  size: {
+    xxs: 12,
+    xs: 13,
+    sm: 14,
+    md: 15,
+    lg: 16,
+    xl: 18,
+    xxl: 20,
+    xxxl: 22,
+    title: 24,
+    display: 28,
+  },
+  weight: {
+    semibold: "600",
+    bold: "700",
+  },
+} as const;
+
 export const opacity = {
   disabled: 0.38,
   pressed: 0.72,

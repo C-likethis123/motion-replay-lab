@@ -1,30 +1,28 @@
-import { useMemo, useState } from "react";
-import {
-  Alert,
-  Modal,
-  Pressable,
-  ScrollView,
-  Switch,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { useMemo, useRef, useState } from "react";
+import { Alert, ScrollView } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
-import { Link, Stack } from "expo-router";
+import { Stack } from "expo-router";
 import { createVideoPlayer } from "expo-video";
-import { FileVideo, Plus, Search, X } from "lucide-react-native";
+import { Plus } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
-import { Card } from "@/components/card";
+import {
+  AddVideoDraft,
+  AddVideoModal,
+} from "@/components/add-video-modal";
 import { IconButton } from "@/components/icon-button";
-import { LabelledTextInput } from "@/components/labelled-text-input";
-import { PickerField } from "@/components/picker-field";
-import { Pill } from "@/components/pill";
-import { deriveBpmTiming, formatBpm, parseBpmInput } from "@/lib/bpm";
-import { colors, opacity, radii } from "@/lib/theme";
+import { LibraryControls } from "@/components/library-controls";
+import { LibraryVideoList } from "@/components/library-video-list";
+import {
+  BpmEstimate,
+  deriveBpmTiming,
+  deriveDetectedBpmTiming,
+  estimateBpm,
+  parseBpmInput,
+} from "@/lib/bpm";
+import { spacing } from "@/lib/theme";
 import { useVideos, VideoThumbnailSource } from "@/lib/videos";
-import { pluralise } from "@/utils/i18n";
 
-const emptyVideo = {
+const emptyVideo: AddVideoDraft = {
   title: "",
   style: "",
   teacher: "",
@@ -40,6 +38,9 @@ export default function LibraryScreen() {
   const [showAdd, setShowAdd] = useState(false);
   const [onlyBookmarked, setOnlyBookmarked] = useState(false);
   const [draft, setDraft] = useState(emptyVideo);
+  const [bpmEstimate, setBpmEstimate] = useState<BpmEstimate | null>(null);
+  const [isEstimatingBpm, setIsEstimatingBpm] = useState(false);
+  const bpmRequestRef = useRef(0);
 
   const filteredVideos = useMemo(() => {
     return videos.filter((video) => {
@@ -83,15 +84,32 @@ export default function LibraryScreen() {
       if (openSheet) {
         setShowAdd(true);
       }
+
+      const requestId = bpmRequestRef.current + 1;
+      bpmRequestRef.current = requestId;
+      setBpmEstimate(null);
+      setIsEstimatingBpm(true);
+
+      const estimate = await estimateBpm(asset.uri);
+
+      if (bpmRequestRef.current === requestId) {
+        setBpmEstimate(estimate);
+        setDraft((current) => ({
+          ...current,
+          bpm: estimate.bpm?.toString() ?? current.bpm,
+        }));
+        setIsEstimatingBpm(false);
+      }
     } catch {
       Alert.alert(
         "Could not pick video",
         "Please try selecting the video again.",
       );
+      setIsEstimatingBpm(false);
     }
   }
   async function saveDraft() {
-    if (!draft.title.trim() || !draft.sourceUri.trim()) {
+    if (!draft.title.trim() || !draft.sourceUri.trim() || isEstimatingBpm) {
       return;
     }
 
@@ -100,6 +118,9 @@ export default function LibraryScreen() {
       sourceUri,
       draft.thumbnailUri.trim(),
     );
+    const bpmTiming = bpmEstimate
+      ? deriveDetectedBpmTiming(bpmEstimate)
+      : deriveBpmTiming(parseBpmInput(draft.bpm));
 
     addVideo({
       title: draft.title.trim(),
@@ -107,10 +128,11 @@ export default function LibraryScreen() {
       teacher: draft.teacher.trim() || "Unassigned",
       sourceUri,
       thumbnailUri,
-      ...deriveBpmTiming(parseBpmInput(draft.bpm)),
+      ...bpmTiming,
       sections: [],
     });
     setShowAdd(false);
+    setBpmEstimate(null);
 
     if (process.env.EXPO_OS === "ios") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -129,184 +151,32 @@ export default function LibraryScreen() {
       />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={{ padding: 20, paddingBottom: 40, gap: 18 }}
+        contentContainerStyle={{
+          padding: spacing.screen,
+          paddingBottom: spacing.screenBottom,
+          gap: spacing.screenGap,
+        }}
       >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 10,
-            paddingHorizontal: 14,
-            minHeight: 48,
-            borderRadius: radii.md,
-            borderCurve: "continuous",
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.borderStrong,
-          }}
-        >
-          <Search size={18} color={colors.textMuted} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search videos"
-            placeholderTextColor={colors.textSubtle}
-            style={{ flex: 1, color: colors.text, fontSize: 16 }}
-          />
-        </View>
-
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 16,
-          }}
-        >
-          <View>
-            <Text selectable style={{ color: colors.textMuted, fontSize: 13 }}>
-              Playlist
-            </Text>
-            <Text
-              selectable
-              style={{
-                color: colors.text,
-                fontSize: 28,
-                fontWeight: "700",
-                marginTop: 2,
-              }}
-            >
-              {filteredVideos.length} videos
-            </Text>
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Text selectable style={{ color: colors.accentText, fontSize: 14 }}>
-              Loops
-            </Text>
-            <Switch value={onlyBookmarked} onValueChange={setOnlyBookmarked} />
-          </View>
-        </View>
-
-        <View style={{ gap: 12 }}>
-          {filteredVideos.map((video) => (
-            <Link key={video.id} href={`/video/${video.id}`} asChild>
-              <Card>
-                <Card.Image
-                  source={video.thumbnailUri}
-                  fallback={<FileVideo size={24} color={colors.accentText} />}
-                />
-                <Card.Content>
-                  <View style={{ gap: 4 }}>
-                    <Card.Title>{video.title}</Card.Title>
-                    <Card.Description>
-                      {video.style} - {video.teacher}
-                    </Card.Description>
-                  </View>
-                  <Card.Footer>
-                    <Pill label={formatBpm(video)} />
-                    <Pill
-                      label={`${pluralise(video.sections.length, "loop")}`}
-                    />
-                  </Card.Footer>
-                </Card.Content>
-              </Card>
-            </Link>
-          ))}
-        </View>
+        <LibraryControls
+          onlyBookmarked={onlyBookmarked}
+          query={query}
+          videoCount={filteredVideos.length}
+          onChangeOnlyBookmarked={setOnlyBookmarked}
+          onChangeQuery={setQuery}
+        />
+        <LibraryVideoList videos={filteredVideos} />
       </ScrollView>
 
-      <Modal
-        animationType="slide"
-        presentationStyle="pageSheet"
+      <AddVideoModal
+        draft={draft}
+        estimate={bpmEstimate}
+        isAnalyzing={isEstimatingBpm}
         visible={showAdd}
-      >
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={{
-            padding: 20,
-            gap: 14,
-            backgroundColor: colors.appBackground,
-          }}
-        >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <Text
-              selectable
-              style={{ color: colors.text, fontSize: 24, fontWeight: "700" }}
-            >
-              Add video
-            </Text>
-            <IconButton
-              icon={X}
-              label="Close"
-              onPress={() => setShowAdd(false)}
-            />
-          </View>
-          <LabelledTextInput
-            label="Title"
-            value={draft.title}
-            onChangeText={(title) => setDraft({ ...draft, title })}
-          />
-          <LabelledTextInput
-            label="Style (optional)"
-            value={draft.style}
-            onChangeText={(style) => setDraft({ ...draft, style })}
-          />
-          <LabelledTextInput
-            label="Teacher"
-            value={draft.teacher}
-            onChangeText={(teacher) => setDraft({ ...draft, teacher })}
-          />
-          <PickerField
-            label="Video"
-            value={draft.sourceName || draft.sourceUri}
-            placeholder="Choose video"
-            leftAccessory={<FileVideo size={18} color={colors.textSecondary} />}
-            onPress={() => pickVideo()}
-          />
-          <LabelledTextInput
-            label="Thumbnail URL"
-            value={draft.thumbnailUri}
-            onChangeText={(thumbnailUri) =>
-              setDraft({ ...draft, thumbnailUri })
-            }
-          />
-          <LabelledTextInput
-            label="BPM"
-            value={draft.bpm}
-            keyboardType="number-pad"
-            onChangeText={(bpm) => setDraft({ ...draft, bpm })}
-          />
-          <Pressable
-            accessibilityRole="button"
-            onPress={saveDraft}
-            style={({ pressed }) => ({
-              minHeight: 52,
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: radii.md,
-              borderCurve: "continuous",
-              backgroundColor: colors.primary,
-              opacity: pressed ? opacity.pressedSoft : 1,
-            })}
-          >
-            <Text
-              style={{
-                color: colors.primaryOn,
-                fontSize: 16,
-                fontWeight: "700",
-              }}
-            >
-              Save video
-            </Text>
-          </Pressable>
-        </ScrollView>
-      </Modal>
+        onChangeDraft={setDraft}
+        onClose={() => setShowAdd(false)}
+        onPickVideo={() => pickVideo()}
+        onSave={saveDraft}
+      />
     </>
   );
 }
