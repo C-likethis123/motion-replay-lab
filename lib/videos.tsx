@@ -1,5 +1,12 @@
 import * as React from "react";
-import { createContext, ReactNode, useCallback, useMemo, useState } from "react";
+import type { VideoThumbnail } from "expo-video";
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 
 export type PracticeSection = {
   id: string;
@@ -8,15 +15,20 @@ export type PracticeSection = {
   end: number;
 };
 
+export type BpmSource = "detected" | "tap" | "unavailable";
+export type VideoThumbnailSource = string | VideoThumbnail | null;
+
 export type DanceVideo = {
   id: string;
   title: string;
   style: string;
   teacher: string;
   sourceUri: string;
-  thumbnailUri: string;
-  bpm: number;
-  countSeconds: number;
+  thumbnailUri: VideoThumbnailSource;
+  bpm: number | null;
+  countSeconds: number | null;
+  bpmSource: BpmSource;
+  bpmConfidence?: number;
   sections: PracticeSection[];
 };
 
@@ -37,11 +49,13 @@ const starterVideos: DanceVideo[] = [
     title: "Foundation Groove",
     style: "Hip hop",
     teacher: "Studio A",
-    sourceUri: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+    sourceUri:
+      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
     thumbnailUri:
       "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=900&q=80",
     bpm: 96,
     countSeconds: 0.625,
+    bpmSource: "detected",
     sections: [
       { id: "warmup", label: "Warmup", start: 4, end: 18 },
       { id: "eight-a", label: "First 8", start: 18, end: 28 },
@@ -53,11 +67,13 @@ const starterVideos: DanceVideo[] = [
     title: "Turn Combo",
     style: "Jazz",
     teacher: "Maya Chen",
-    sourceUri: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+    sourceUri:
+      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
     thumbnailUri:
       "https://images.unsplash.com/photo-1547153760-18fc86324498?auto=format&fit=crop&w=900&q=80",
     bpm: 112,
     countSeconds: 0.536,
+    bpmSource: "detected",
     sections: [
       { id: "prep", label: "Prep", start: 6, end: 16 },
       { id: "turns", label: "Turns", start: 16, end: 31 },
@@ -94,7 +110,9 @@ export function VideosProvider({ children }: { children: ReactNode }) {
     [addVideo, deleteVideo, updateVideo, videos],
   );
 
-  return <VideosContext.Provider value={value}>{children}</VideosContext.Provider>;
+  return (
+    <VideosContext.Provider value={value}>{children}</VideosContext.Provider>
+  );
 }
 
 export function useVideos() {

@@ -10,12 +10,19 @@ import {
   View,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
-import { Image } from "expo-image";
 import { Link, Stack } from "expo-router";
+import { createVideoPlayer } from "expo-video";
 import { FileVideo, Plus, Search, X } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
+import { Card } from "@/components/card";
 import { IconButton } from "@/components/icon-button";
-import { DanceVideo, useVideos } from "@/lib/videos";
+import { LabelledTextInput } from "@/components/labelled-text-input";
+import { PickerField } from "@/components/picker-field";
+import { Pill } from "@/components/pill";
+import { deriveBpmTiming, formatBpm, parseBpmInput } from "@/lib/bpm";
+import { colors, opacity, radii } from "@/lib/theme";
+import { useVideos, VideoThumbnailSource } from "@/lib/videos";
+import { pluralise } from "@/utils/i18n";
 
 const emptyVideo = {
   title: "",
@@ -77,25 +84,30 @@ export default function LibraryScreen() {
         setShowAdd(true);
       }
     } catch {
-      Alert.alert("Could not pick video", "Please try selecting the video again.");
+      Alert.alert(
+        "Could not pick video",
+        "Please try selecting the video again.",
+      );
     }
   }
-
-  function saveDraft() {
+  async function saveDraft() {
     if (!draft.title.trim() || !draft.sourceUri.trim()) {
       return;
     }
+
+    const sourceUri = draft.sourceUri.trim();
+    const thumbnailUri = await resolveThumbnail(
+      sourceUri,
+      draft.thumbnailUri.trim(),
+    );
 
     addVideo({
       title: draft.title.trim(),
       style: draft.style.trim() || "Practice",
       teacher: draft.teacher.trim() || "Unassigned",
-      sourceUri: draft.sourceUri.trim(),
-      thumbnailUri:
-        draft.thumbnailUri.trim() ||
-        "https://images.unsplash.com/photo-1519925610903-381054cc2a1c?auto=format&fit=crop&w=900&q=80",
-      bpm: Number(draft.bpm) || 100,
-      countSeconds: 60 / (Number(draft.bpm) || 100),
+      sourceUri,
+      thumbnailUri,
+      ...deriveBpmTiming(parseBpmInput(draft.bpm)),
       sections: [],
     });
     setShowAdd(false);
@@ -110,7 +122,9 @@ export default function LibraryScreen() {
       <Stack.Screen
         options={{
           title: "Dance",
-          headerRight: () => <IconButton icon={Plus} label="Add video" onPress={openAdd} />,
+          headerRight: () => (
+            <IconButton icon={Plus} label="Add video" onPress={openAdd} />
+          ),
         }}
       />
       <ScrollView
@@ -124,20 +138,20 @@ export default function LibraryScreen() {
             gap: 10,
             paddingHorizontal: 14,
             minHeight: 48,
-            borderRadius: 14,
+            borderRadius: radii.md,
             borderCurve: "continuous",
-            backgroundColor: "#ffffff",
+            backgroundColor: colors.surface,
             borderWidth: 1,
-            borderColor: "#ded7cc",
+            borderColor: colors.borderStrong,
           }}
         >
-          <Search size={18} color="#746c62" />
+          <Search size={18} color={colors.textMuted} />
           <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder="Search videos"
-            placeholderTextColor="#8f867b"
-            style={{ flex: 1, color: "#1f2a2e", fontSize: 16 }}
+            placeholderTextColor={colors.textSubtle}
+            style={{ flex: 1, color: colors.text, fontSize: 16 }}
           />
         </View>
 
@@ -150,18 +164,23 @@ export default function LibraryScreen() {
           }}
         >
           <View>
-            <Text selectable style={{ color: "#756d63", fontSize: 13 }}>
+            <Text selectable style={{ color: colors.textMuted, fontSize: 13 }}>
               Playlist
             </Text>
             <Text
               selectable
-              style={{ color: "#1f2a2e", fontSize: 28, fontWeight: "700", marginTop: 2 }}
+              style={{
+                color: colors.text,
+                fontSize: 28,
+                fontWeight: "700",
+                marginTop: 2,
+              }}
             >
               {filteredVideos.length} videos
             </Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Text selectable style={{ color: "#4f5b53", fontSize: 14 }}>
+            <Text selectable style={{ color: colors.accentText, fontSize: 14 }}>
               Loops
             </Text>
             <Switch value={onlyBookmarked} onValueChange={setOnlyBookmarked} />
@@ -170,32 +189,94 @@ export default function LibraryScreen() {
 
         <View style={{ gap: 12 }}>
           {filteredVideos.map((video) => (
-            <VideoCard key={video.id} video={video} />
+            <Link key={video.id} href={`/video/${video.id}`} asChild>
+              <Card>
+                <Card.Image
+                  source={video.thumbnailUri}
+                  fallback={<FileVideo size={24} color={colors.accentText} />}
+                />
+                <Card.Content>
+                  <View style={{ gap: 4 }}>
+                    <Card.Title>{video.title}</Card.Title>
+                    <Card.Description>
+                      {video.style} - {video.teacher}
+                    </Card.Description>
+                  </View>
+                  <Card.Footer>
+                    <Pill label={formatBpm(video)} />
+                    <Pill
+                      label={`${pluralise(video.sections.length, "loop")}`}
+                    />
+                  </Card.Footer>
+                </Card.Content>
+              </Card>
+            </Link>
           ))}
         </View>
       </ScrollView>
 
-      <Modal animationType="slide" presentationStyle="pageSheet" visible={showAdd}>
+      <Modal
+        animationType="slide"
+        presentationStyle="pageSheet"
+        visible={showAdd}
+      >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={{ padding: 20, gap: 14, backgroundColor: "#f8f4ee" }}
+          contentContainerStyle={{
+            padding: 20,
+            gap: 14,
+            backgroundColor: colors.appBackground,
+          }}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <Text selectable style={{ color: "#1f2a2e", fontSize: 24, fontWeight: "700" }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Text
+              selectable
+              style={{ color: colors.text, fontSize: 24, fontWeight: "700" }}
+            >
               Add video
             </Text>
-            <IconButton icon={X} label="Close" onPress={() => setShowAdd(false)} />
+            <IconButton
+              icon={X}
+              label="Close"
+              onPress={() => setShowAdd(false)}
+            />
           </View>
-          <VideoField label="Title" value={draft.title} onChangeText={(title) => setDraft({ ...draft, title })} />
-          <VideoField label="Style" value={draft.style} onChangeText={(style) => setDraft({ ...draft, style })} />
-          <VideoField label="Teacher" value={draft.teacher} onChangeText={(teacher) => setDraft({ ...draft, teacher })} />
+          <LabelledTextInput
+            label="Title"
+            value={draft.title}
+            onChangeText={(title) => setDraft({ ...draft, title })}
+          />
+          <LabelledTextInput
+            label="Style (optional)"
+            value={draft.style}
+            onChangeText={(style) => setDraft({ ...draft, style })}
+          />
+          <LabelledTextInput
+            label="Teacher"
+            value={draft.teacher}
+            onChangeText={(teacher) => setDraft({ ...draft, teacher })}
+          />
           <PickerField
             label="Video"
             value={draft.sourceName || draft.sourceUri}
+            placeholder="Choose video"
+            leftAccessory={<FileVideo size={18} color={colors.textSecondary} />}
             onPress={() => pickVideo()}
           />
-          <VideoField label="Thumbnail URL" value={draft.thumbnailUri} onChangeText={(thumbnailUri) => setDraft({ ...draft, thumbnailUri })} />
-          <VideoField
+          <LabelledTextInput
+            label="Thumbnail URL"
+            value={draft.thumbnailUri}
+            onChangeText={(thumbnailUri) =>
+              setDraft({ ...draft, thumbnailUri })
+            }
+          />
+          <LabelledTextInput
             label="BPM"
             value={draft.bpm}
             keyboardType="number-pad"
@@ -208,13 +289,21 @@ export default function LibraryScreen() {
               minHeight: 52,
               alignItems: "center",
               justifyContent: "center",
-              borderRadius: 14,
+              borderRadius: radii.md,
               borderCurve: "continuous",
-              backgroundColor: "#1f2a2e",
-              opacity: pressed ? 0.78 : 1,
+              backgroundColor: colors.primary,
+              opacity: pressed ? opacity.pressedSoft : 1,
             })}
           >
-            <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "700" }}>Save video</Text>
+            <Text
+              style={{
+                color: colors.primaryOn,
+                fontSize: 16,
+                fontWeight: "700",
+              }}
+            >
+              Save video
+            </Text>
           </Pressable>
         </ScrollView>
       </Modal>
@@ -222,145 +311,33 @@ export default function LibraryScreen() {
   );
 }
 
+async function resolveThumbnail(
+  sourceUri: string,
+  thumbnailUri: string,
+): Promise<VideoThumbnailSource> {
+  if (thumbnailUri) {
+    return thumbnailUri;
+  }
+
+  const player = createVideoPlayer({ uri: sourceUri });
+
+  try {
+    const [thumbnail] = await player.generateThumbnailsAsync(0, {
+      maxWidth: 900,
+    });
+    return thumbnail ?? null;
+  } catch {
+    return null;
+  } finally {
+    player.release();
+  }
+}
+
 function titleFromFileName(name: string) {
-  return name.replace(/\.[^/.]+$/, "").replace(/[-_]+/g, " ").trim() || "Untitled video";
-}
-
-function VideoCard({ video }: { video: DanceVideo }) {
   return (
-    <Link href={`/video/${video.id}`} asChild>
-      <Pressable
-        style={({ pressed }) => ({
-          flexDirection: "row",
-          gap: 12,
-          padding: 10,
-          borderRadius: 16,
-          borderCurve: "continuous",
-          backgroundColor: "#ffffff",
-          borderWidth: 1,
-          borderColor: "#ded7cc",
-          opacity: pressed ? 0.82 : 1,
-          boxShadow: "0 1px 2px rgba(31, 42, 46, 0.06)",
-        })}
-      >
-        <Image
-          source={{ uri: video.thumbnailUri }}
-          style={{ width: 104, aspectRatio: 1.1, borderRadius: 12 }}
-          contentFit="cover"
-        />
-        <View style={{ flex: 1, justifyContent: "space-between", minHeight: 94 }}>
-          <View style={{ gap: 4 }}>
-            <Text selectable style={{ color: "#1f2a2e", fontSize: 18, fontWeight: "700" }}>
-              {video.title}
-            </Text>
-            <Text selectable style={{ color: "#6f665c", fontSize: 14 }}>
-              {video.style} - {video.teacher}
-            </Text>
-          </View>
-          <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-            <Pill label={`${video.bpm} BPM`} />
-            <Pill label={`${video.sections.length} loops`} />
-          </View>
-        </View>
-      </Pressable>
-    </Link>
-  );
-}
-
-function Pill({ label }: { label: string }) {
-  return (
-    <View
-      style={{
-        paddingHorizontal: 9,
-        minHeight: 26,
-        justifyContent: "center",
-        borderRadius: 13,
-        backgroundColor: "#edf1e7",
-      }}
-    >
-      <Text selectable style={{ color: "#405043", fontSize: 12, fontWeight: "600" }}>
-        {label}
-      </Text>
-    </View>
-  );
-}
-
-function PickerField({
-  label,
-  value,
-  onPress,
-}: {
-  label: string;
-  value: string;
-  onPress: () => void;
-}) {
-  return (
-    <View style={{ gap: 6 }}>
-      <Text selectable style={{ color: "#625a51", fontSize: 13, fontWeight: "600" }}>
-        {label}
-      </Text>
-      <Pressable
-        accessibilityRole="button"
-        onPress={onPress}
-        style={({ pressed }) => ({
-          minHeight: 48,
-          paddingHorizontal: 14,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 10,
-          borderRadius: 12,
-          borderCurve: "continuous",
-          backgroundColor: "#ffffff",
-          borderWidth: 1,
-          borderColor: "#d8d1c7",
-          opacity: pressed ? 0.78 : 1,
-        })}
-      >
-        <FileVideo size={18} color="#625a51" />
-        <Text
-          numberOfLines={1}
-          style={{ flex: 1, color: value ? "#1f2a2e" : "#8f867b", fontSize: 16 }}
-        >
-          {value || "Choose video"}
-        </Text>
-      </Pressable>
-    </View>
-  );
-}
-
-function VideoField({
-  label,
-  value,
-  onChangeText,
-  keyboardType,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  keyboardType?: "default" | "number-pad";
-}) {
-  return (
-    <View style={{ gap: 6 }}>
-      <Text selectable style={{ color: "#625a51", fontSize: 13, fontWeight: "600" }}>
-        {label}
-      </Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        keyboardType={keyboardType}
-        autoCapitalize="none"
-        style={{
-          minHeight: 48,
-          paddingHorizontal: 14,
-          borderRadius: 12,
-          borderCurve: "continuous",
-          backgroundColor: "#ffffff",
-          borderWidth: 1,
-          borderColor: "#d8d1c7",
-          color: "#1f2a2e",
-          fontSize: 16,
-        }}
-      />
-    </View>
+    name
+      .replace(/\.[^/.]+$/, "")
+      .replace(/[-_]+/g, " ")
+      .trim() || "Untitled video"
   );
 }
