@@ -11,6 +11,8 @@ export const colors = {
   primaryOn: "#ffffff",
   accent: "#52796f",
   accentSoft: "#edf1e7",
+  accentSelected: "#e4eee8",
+  accentBorder: "#91aa9d",
   accentText: "#405043",
   danger: "#b42318",
   dangerSoft: "#fff5f3",
@@ -21,6 +23,7 @@ export const colors = {
 } as const;
 
 export const radii = {
+  xs: 4,
   sm: 12,
   md: 14,
   lg: 16,

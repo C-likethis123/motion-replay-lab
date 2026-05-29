@@ -6,10 +6,18 @@ export type BpmTiming = {
   bpmSource: BpmSource;
 };
 
-export function deriveBpmTiming(value: string): BpmTiming {
+export function parseBpmInput(value: string): number | null {
   const bpm = Number(value);
 
   if (!Number.isFinite(bpm) || bpm <= 0) {
+    return null;
+  }
+
+  return bpm;
+}
+
+export function deriveBpmTiming(bpm: number | null): BpmTiming {
+  if (!bpm) {
     return { bpm: null, countSeconds: null, bpmSource: "unavailable" };
   }
 

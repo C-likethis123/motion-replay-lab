@@ -23,7 +23,8 @@ import {
   X,
 } from "lucide-react-native";
 import { IconButton } from "@/components/icon-button";
-import { deriveBpmTiming } from "@/lib/bpm";
+import { deriveBpmTiming, parseBpmInput } from "@/lib/bpm";
+import { colors, opacity, radii } from "@/lib/theme";
 import { DanceVideo, PracticeSection, useVideos } from "@/lib/videos";
 
 const speeds = [0.5, 0.75, 1, 1.25];
@@ -34,7 +35,10 @@ export default function VideoPracticeScreen() {
   const router = useRouter();
   const { videos, updateVideo, deleteVideo } = useVideos();
   const video = videos.find((item) => item.id === id);
-  const source = useMemo(() => (video ? { uri: video.sourceUri } : null), [video]);
+  const source = useMemo(
+    () => (video ? { uri: video.sourceUri } : null),
+    [video],
+  );
   const player = useVideoPlayer(source, (createdPlayer) => {
     createdPlayer.timeUpdateEventInterval = 0.25;
   });
@@ -70,7 +74,10 @@ export default function VideoPracticeScreen() {
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={{ padding: 20, gap: 16 }}
         >
-          <Text selectable style={{ color: "#1f2a2e", fontSize: 22, fontWeight: "700" }}>
+          <Text
+            selectable
+            style={{ color: colors.text, fontSize: 22, fontWeight: "700" }}
+          >
             Video not found
           </Text>
         </ScrollView>
@@ -119,7 +126,7 @@ export default function VideoPracticeScreen() {
       teacher: draft.teacher.trim() || selectedVideo.teacher,
       sourceUri: draft.sourceUri.trim() || selectedVideo.sourceUri,
       thumbnailUri: draft.thumbnailUri.trim() || selectedVideo.thumbnailUri,
-      ...deriveBpmTiming(draft.bpm),
+      ...deriveBpmTiming(parseBpmInput(draft.bpm)),
       sections: parseSections(draft.sections, selectedVideo.sections),
     });
     setShowEdit(false);
@@ -145,7 +152,12 @@ export default function VideoPracticeScreen() {
                   setShowEdit(true);
                 }}
               />
-              <IconButton icon={Trash2} label="Delete video" tone="danger" onPress={removeVideo} />
+              <IconButton
+                icon={Trash2}
+                label="Delete video"
+                tone="danger"
+                onPress={removeVideo}
+              />
             </View>
           ),
         }}
@@ -157,11 +169,11 @@ export default function VideoPracticeScreen() {
         <View
           style={{
             overflow: "hidden",
-            borderRadius: 18,
+            borderRadius: radii.xl,
             borderCurve: "continuous",
-            backgroundColor: "#111719",
+            backgroundColor: colors.videoChrome,
             borderWidth: 1,
-            borderColor: "#242d30",
+            borderColor: colors.videoChromeBorder,
           }}
         >
           <VideoView
@@ -177,19 +189,35 @@ export default function VideoPracticeScreen() {
         </View>
 
         <View style={{ gap: 10 }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
-            <Text selectable style={{ color: "#1f2a2e", fontSize: 18, fontWeight: "700" }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              gap: 12,
+            }}
+          >
+            <Text
+              selectable
+              style={{ color: colors.text, fontSize: 18, fontWeight: "700" }}
+            >
               {formatTime(currentTime)}
             </Text>
-            <Text selectable style={{ color: "#736b61", fontSize: 18, fontVariant: ["tabular-nums"] }}>
+            <Text
+              selectable
+              style={{
+                color: colors.textMuted,
+                fontSize: 18,
+                fontVariant: ["tabular-nums"],
+              }}
+            >
               {formatTime(duration)}
             </Text>
           </View>
           <View
             style={{
               height: 8,
-              borderRadius: 4,
-              backgroundColor: "#dfd8ce",
+              borderRadius: radii.xs,
+              backgroundColor: colors.progressTrack,
               overflow: "hidden",
             }}
           >
@@ -197,13 +225,15 @@ export default function VideoPracticeScreen() {
               style={{
                 width: `${duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0}%`,
                 height: "100%",
-                backgroundColor: "#52796f",
+                backgroundColor: colors.accent,
               }}
             />
           </View>
         </View>
 
-        <View style={{ flexDirection: "row", justifyContent: "center", gap: 12 }}>
+        <View
+          style={{ flexDirection: "row", justifyContent: "center", gap: 12 }}
+        >
           <IconButton
             icon={SkipBack}
             label="Back one count"
@@ -237,17 +267,28 @@ export default function VideoPracticeScreen() {
           style={{
             padding: 14,
             gap: 14,
-            borderRadius: 16,
+            borderRadius: radii.lg,
             borderCurve: "continuous",
-            backgroundColor: "#ffffff",
+            backgroundColor: colors.surface,
             borderWidth: 1,
-            borderColor: "#ded7cc",
+            borderColor: colors.borderStrong,
           }}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <FlipHorizontal size={18} color="#52796f" />
-              <Text selectable style={{ color: "#1f2a2e", fontSize: 16, fontWeight: "700" }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+            >
+              <FlipHorizontal size={18} color={colors.accent} />
+              <Text
+                selectable
+                style={{ color: colors.text, fontSize: 16, fontWeight: "700" }}
+              >
                 Mirror
               </Text>
             </View>
@@ -267,15 +308,21 @@ export default function VideoPracticeScreen() {
                   minHeight: 36,
                   paddingHorizontal: 14,
                   justifyContent: "center",
-                  borderRadius: 18,
-                  backgroundColor: player.playbackRate === speed ? "#1f2a2e" : "#edf1e7",
-                  opacity: pressed ? 0.72 : 1,
+                  borderRadius: radii.xl,
+                  backgroundColor:
+                    player.playbackRate === speed
+                      ? colors.primary
+                      : colors.accentSoft,
+                  opacity: pressed ? opacity.pressed : 1,
                 })}
               >
                 <Text
                   selectable
                   style={{
-                    color: player.playbackRate === speed ? "#ffffff" : "#405043",
+                    color:
+                      player.playbackRate === speed
+                        ? colors.primaryOn
+                        : colors.accentText,
                     fontSize: 14,
                     fontWeight: "700",
                   }}
@@ -288,7 +335,10 @@ export default function VideoPracticeScreen() {
         </View>
 
         <View style={{ gap: 10 }}>
-          <Text selectable style={{ color: "#1f2a2e", fontSize: 20, fontWeight: "700" }}>
+          <Text
+            selectable
+            style={{ color: colors.text, fontSize: 20, fontWeight: "700" }}
+          >
             Sections
           </Text>
           {video.sections.map((section) => {
@@ -303,16 +353,33 @@ export default function VideoPracticeScreen() {
                 style={({ pressed }) => ({
                   padding: 14,
                   gap: 10,
-                  borderRadius: 16,
+                  borderRadius: radii.lg,
                   borderCurve: "continuous",
-                  backgroundColor: selected ? "#e4eee8" : "#ffffff",
+                  backgroundColor: selected
+                    ? colors.accentSelected
+                    : colors.surface,
                   borderWidth: 1,
-                  borderColor: selected ? "#91aa9d" : "#ded7cc",
-                  opacity: pressed ? 0.78 : 1,
+                  borderColor: selected
+                    ? colors.accentBorder
+                    : colors.borderStrong,
+                  opacity: pressed ? opacity.pressedSoft : 1,
                 })}
               >
-                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                  <Text selectable style={{ color: "#1f2a2e", fontSize: 16, fontWeight: "700" }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Text
+                    selectable
+                    style={{
+                      color: colors.text,
+                      fontSize: 16,
+                      fontWeight: "700",
+                    }}
+                  >
                     {section.label}
                   </Text>
                   <IconButton
@@ -322,7 +389,14 @@ export default function VideoPracticeScreen() {
                     onPress={() => setActiveLoop(selected ? null : section)}
                   />
                 </View>
-                <Text selectable style={{ color: "#6f665c", fontSize: 14, fontVariant: ["tabular-nums"] }}>
+                <Text
+                  selectable
+                  style={{
+                    color: colors.textSecondary,
+                    fontSize: 14,
+                    fontVariant: ["tabular-nums"],
+                  }}
+                >
                   {formatTime(section.start)} - {formatTime(section.end)}
                 </Text>
               </Pressable>
@@ -331,23 +405,71 @@ export default function VideoPracticeScreen() {
         </View>
       </ScrollView>
 
-      <Modal animationType="slide" presentationStyle="pageSheet" visible={showEdit}>
+      <Modal
+        animationType="slide"
+        presentationStyle="pageSheet"
+        visible={showEdit}
+      >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={{ padding: 20, gap: 14, backgroundColor: "#f8f4ee" }}
+          contentContainerStyle={{
+            padding: 20,
+            gap: 14,
+            backgroundColor: colors.appBackground,
+          }}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <Text selectable style={{ color: "#1f2a2e", fontSize: 24, fontWeight: "700" }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Text
+              selectable
+              style={{ color: colors.text, fontSize: 24, fontWeight: "700" }}
+            >
               Edit video
             </Text>
-            <IconButton icon={X} label="Close" onPress={() => setShowEdit(false)} />
+            <IconButton
+              icon={X}
+              label="Close"
+              onPress={() => setShowEdit(false)}
+            />
           </View>
-          <VideoField label="Title" value={draft.title} onChangeText={(title) => setDraft({ ...draft, title })} />
-          <VideoField label="Style" value={draft.style} onChangeText={(style) => setDraft({ ...draft, style })} />
-          <VideoField label="Teacher" value={draft.teacher} onChangeText={(teacher) => setDraft({ ...draft, teacher })} />
-          <VideoField label="Video URL" value={draft.sourceUri} onChangeText={(sourceUri) => setDraft({ ...draft, sourceUri })} />
-          <VideoField label="Thumbnail URL" value={draft.thumbnailUri} onChangeText={(thumbnailUri) => setDraft({ ...draft, thumbnailUri })} />
-          <VideoField label="BPM" value={draft.bpm} keyboardType="number-pad" onChangeText={(bpm) => setDraft({ ...draft, bpm })} />
+          <VideoField
+            label="Title"
+            value={draft.title}
+            onChangeText={(title) => setDraft({ ...draft, title })}
+          />
+          <VideoField
+            label="Style"
+            value={draft.style}
+            onChangeText={(style) => setDraft({ ...draft, style })}
+          />
+          <VideoField
+            label="Teacher"
+            value={draft.teacher}
+            onChangeText={(teacher) => setDraft({ ...draft, teacher })}
+          />
+          <VideoField
+            label="Video URL"
+            value={draft.sourceUri}
+            onChangeText={(sourceUri) => setDraft({ ...draft, sourceUri })}
+          />
+          <VideoField
+            label="Thumbnail URL"
+            value={draft.thumbnailUri}
+            onChangeText={(thumbnailUri) =>
+              setDraft({ ...draft, thumbnailUri })
+            }
+          />
+          <VideoField
+            label="BPM"
+            value={draft.bpm}
+            keyboardType="number-pad"
+            onChangeText={(bpm) => setDraft({ ...draft, bpm })}
+          />
           <VideoField
             label="Sections"
             value={draft.sections}
@@ -361,13 +483,17 @@ export default function VideoPracticeScreen() {
               minHeight: 52,
               alignItems: "center",
               justifyContent: "center",
-              borderRadius: 14,
+              borderRadius: radii.md,
               borderCurve: "continuous",
-              backgroundColor: "#1f2a2e",
-              opacity: pressed ? 0.78 : 1,
+              backgroundColor: colors.primary,
+              opacity: pressed ? opacity.pressedSoft : 1,
             })}
           >
-            <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "700" }}>Save changes</Text>
+            <Text
+              style={{ color: colors.primaryOn, fontSize: 16, fontWeight: "700" }}
+            >
+              Save changes
+            </Text>
           </Pressable>
         </ScrollView>
       </Modal>
@@ -381,10 +507,13 @@ function makeDraft(video?: DanceVideo) {
     style: video?.style ?? "",
     teacher: video?.teacher ?? "",
     sourceUri: video?.sourceUri ?? "",
-    thumbnailUri: video?.thumbnailUri ?? "",
+    thumbnailUri:
+      typeof video?.thumbnailUri === "string" ? video.thumbnailUri : "",
     bpm: video?.bpm?.toString() ?? "",
     sections:
-      video?.sections.map((section) => `${section.label}, ${section.start}, ${section.end}`).join("\n") ?? "",
+      video?.sections
+        .map((section) => `${section.label}, ${section.start}, ${section.end}`)
+        .join("\n") ?? "",
   };
 }
 
@@ -400,7 +529,12 @@ function parseSections(value: string, fallback: PracticeSection[]) {
         end: Number(end),
       };
     })
-    .filter((section) => section.label && Number.isFinite(section.start) && Number.isFinite(section.end));
+    .filter(
+      (section) =>
+        section.label &&
+        Number.isFinite(section.start) &&
+        Number.isFinite(section.end),
+    );
 
   return parsed.length > 0 ? parsed : fallback;
 }
@@ -430,7 +564,10 @@ function VideoField({
 }) {
   return (
     <View style={{ gap: 6 }}>
-      <Text selectable style={{ color: "#625a51", fontSize: 13, fontWeight: "600" }}>
+      <Text
+        selectable
+        style={{ color: colors.textSecondary, fontSize: 13, fontWeight: "600" }}
+      >
         {label}
       </Text>
       <TextInput
@@ -443,12 +580,12 @@ function VideoField({
           minHeight: multiline ? 124 : 48,
           paddingHorizontal: 14,
           paddingVertical: multiline ? 12 : 0,
-          borderRadius: 12,
+          borderRadius: radii.sm,
           borderCurve: "continuous",
-          backgroundColor: "#ffffff",
+          backgroundColor: colors.surface,
           borderWidth: 1,
-          borderColor: "#d8d1c7",
-          color: "#1f2a2e",
+          borderColor: colors.border,
+          color: colors.text,
           fontSize: 16,
           textAlignVertical: multiline ? "top" : "center",
         }}
