@@ -8,7 +8,7 @@ import { LabelledTextInput } from "@/components/labelled-text-input";
 import { PickerField } from "@/components/picker-field";
 import { colors, opacity, radii, spacing, typography } from "@/lib/theme";
 
-export type AddVideoDraft = {
+export type EditVideoDraft = {
   title: string;
   style: string;
   teacher: string;
@@ -16,13 +16,12 @@ export type AddVideoDraft = {
   sourceName: string;
   thumbnailUri: string;
   bpm: string;
+  sections: string;
 };
 
-type AddVideoModalProps = {
-  control: Control<AddVideoDraft>;
-  errors: FieldErrors<AddVideoDraft>;
-  estimate: BpmEstimate | null;
-  isAnalyzing: boolean;
+type EditVideoModalProps = {
+  control: Control<EditVideoDraft>;
+  errors: FieldErrors<EditVideoDraft>;
   sourceLabel: string;
   visible: boolean;
   onClose: () => void;
@@ -30,17 +29,15 @@ type AddVideoModalProps = {
   onSave: () => void;
 };
 
-export function AddVideoModal({
+export function EditVideoModal({
   control,
   errors,
-  estimate,
-  isAnalyzing,
   sourceLabel,
   visible,
   onClose,
   onPickVideo,
   onSave,
-}: AddVideoModalProps) {
+}: EditVideoModalProps) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -74,7 +71,7 @@ export function AddVideoModal({
               fontWeight: typography.weight.bold,
             }}
           >
-            Add video
+            Edit video
           </Text>
           <IconButton icon={X} label="Close" onPress={onClose} />
         </View>
@@ -120,7 +117,6 @@ export function AddVideoModal({
           leftAccessory={<FileVideo size={18} color={colors.textSecondary} />}
           onPress={onPickVideo}
         />
-        {!isAnalyzing && <BpmDetectionStatus estimate={estimate} />}
         <Controller
           control={control}
           name="thumbnailUri"
@@ -144,6 +140,18 @@ export function AddVideoModal({
             />
           )}
         />
+        <Controller
+          control={control}
+          name="sections"
+          render={({ field: { onChange, value } }) => (
+            <LabelledTextInput
+              label="Sections"
+              value={value}
+              multiline
+              onChangeText={onChange}
+            />
+          )}
+        />
         <Pressable
           accessibilityRole="button"
           disabled={isAnalyzing}
@@ -155,11 +163,7 @@ export function AddVideoModal({
             borderRadius: radii.md,
             borderCurve: "continuous",
             backgroundColor: colors.primary,
-            opacity: isAnalyzing
-              ? opacity.disabled
-              : pressed
-                ? opacity.pressedSoft
-                : 1,
+            opacity: pressed ? opacity.pressedSoft : 1,
           })}
         >
           <Text
@@ -169,62 +173,10 @@ export function AddVideoModal({
               fontWeight: typography.weight.bold,
             }}
           >
-            {isAnalyzing ? "Analyzing BPM" : "Save video"}
+            Save changes
           </Text>
         </Pressable>
       </ScrollView>
     </Modal>
   );
-}
-
-function BpmDetectionStatus({ estimate }: { estimate: BpmEstimate | null }) {
-  const label = getBpmStatusLabel(estimate);
-  const detail =
-    estimate?.source === "detected"
-      ? `${Math.round(estimate.confidence * 100)}% confidence`
-      : estimate?.error;
-
-  return (
-    <View
-      style={{
-        padding: spacing.xl,
-        gap: detail ? spacing.xs : 0,
-        borderRadius: radii.sm,
-        borderCurve: "continuous",
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor:
-          estimate?.source === "detected" ? colors.accentBorder : colors.border,
-      }}
-    >
-      <Text
-        style={{
-          color: colors.text,
-          fontSize: typography.size.md,
-          fontWeight: typography.weight.bold,
-        }}
-      >
-        {label}
-      </Text>
-      {detail && (
-        <Text
-          style={{ color: colors.textSecondary, fontSize: typography.size.xs }}
-        >
-          {detail}
-        </Text>
-      )}
-    </View>
-  );
-}
-
-function getBpmStatusLabel(estimate: BpmEstimate | null) {
-  if (!estimate) {
-    return "BPM will be detected after choosing a video";
-  }
-
-  if (estimate.source === "detected" && estimate.bpm) {
-    return `${estimate.bpm} BPM detected`;
-  }
-
-  return "BPM unavailable";
 }

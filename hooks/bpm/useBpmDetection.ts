@@ -1,9 +1,9 @@
-import { AddVideoDraft } from "@/components/add-video-modal";
+import { EditVideoDraft } from "@/components/edit-video-modal";
 import { BpmEstimate, estimateBpm } from "@/lib/bpm";
 import { useState, useRef, useCallback } from "react";
 import { UseFormSetValue } from "react-hook-form";
 
-export function useBpmDetection(setValue: UseFormSetValue<AddVideoDraft>) {
+export function useBpmDetection(setValue: UseFormSetValue<EditVideoDraft>) {
   const [estimate, setEstimate] = useState<BpmEstimate | null>(null);
   const [isEstimating, setIsEstimating] = useState(false);
   const requestRef = useRef(0);

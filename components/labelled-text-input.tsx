@@ -6,12 +6,14 @@ export function LabelledTextInput({
   value,
   onChangeText,
   keyboardType,
+  multiline,
   error,
 }: {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
   keyboardType?: "default" | "number-pad";
+  multiline?: boolean;
   error?: string;
 }) {
   return (
@@ -30,10 +32,12 @@ export function LabelledTextInput({
         value={value}
         onChangeText={onChangeText}
         keyboardType={keyboardType}
+        multiline={multiline}
         autoCapitalize="none"
         style={{
-          minHeight: 48,
+          minHeight: multiline ? 124 : 48,
           paddingHorizontal: spacing.xxl,
+          paddingVertical: multiline ? spacing.xl : 0,
           borderRadius: radii.sm,
           borderCurve: "continuous",
           backgroundColor: colors.surface,
@@ -41,6 +45,7 @@ export function LabelledTextInput({
           borderColor: error ? colors.dangerBorder : colors.border,
           color: colors.text,
           fontSize: typography.size.lg,
+          textAlignVertical: multiline ? "top" : "center",
         }}
       />
       {error && (
