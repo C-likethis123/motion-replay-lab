@@ -2,7 +2,7 @@
   "name": "dance",
   "version": "1.0.0",
   "private": true,
-  "main": "expo-router/entry",
+  "main": "index.ts",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@types/react": "^19.2.15",
+    "event-target-shim": "^5.0.1",
     "expo": "^56.0.5",
     "expo-constants": "~56.0.16",
     "expo-document-picker": "^56.0.4",
@@ -33,9 +34,11 @@
     "react-dom": "19.2.3",
     "react-hook-form": "^7.76.1",
     "react-native": "^0.85.3",
+    "react-native-audio-api": "^0.12.2",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "^4.25.2",
     "react-native-svg": "15.15.4",
+    "realtime-bpm-analyzer": "^5.0.13",
     "typescript": "^6.0.3"
   },
   "devDependencies": {

@@ -6,10 +6,10 @@
 - [ ] **Analyze Audio Extraction Quality:** Verify the quality of audio extracted by `expo-video-audio-extractor` and the `trimLeadingSilence` logic.
 
 ## Technical Improvements
-- [ ] **Optimize Analysis Window:** Investigate if dynamic windowing (e.g., skip intro, analyze middle of song) improves stability.
-- [ ] **Improve Preprocessing:** Experiment with higher sample rates (e.g., 22,050 Hz or 44,100 Hz) if performance allows, and apply basic frequency filtering (e.g., low-pass) to focus on the rhythmic content (kick drum).
-- [ ] **Algorithm Evaluation:** Compare `music-tempo` with modern, possibly native or WASM-based alternatives for better accuracy.
-- [ ] **Refine Confidence Scoring:** Adjust `estimateConfidence` to better reward consistent rhythmic patterns and handle common BPM doubling/halving issues gracefully.
+- [x] **Optimize Analysis Window:** Select the strongest rhythmic 30-second window from the extracted analysis samples instead of always trusting the beginning of the track.
+- [x] **Improve Preprocessing:** Analyze at 22,050 Hz and apply a light low-pass filter before tempo detection to emphasize lower-frequency rhythmic content.
+- [x] **Algorithm Evaluation:** Run `realtime-bpm-analyzer` and `music-tempo` on the same focused window, then choose/merge candidates instead of blindly accepting the first realtime result.
+- [x] **Refine Confidence Scoring:** Boost confidence when analyzers agree within a small BPM tolerance and keep the stronger candidate when they disagree.
 
 ## Validation & Workflow
 - [ ] **Implement Automated Regression Tests:** Integrate the test dataset into the CI/CD pipeline to ensure future changes do not degrade accuracy.

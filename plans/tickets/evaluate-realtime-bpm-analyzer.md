@@ -13,7 +13,12 @@ Our current BPM detection relies on the `music-tempo` library. To improve detect
 For a production app requiring high precision, **Option A (`react-native-audio-api`)** is the superior choice due to its lower latency and tighter integration with the native audio stack.
 
 ## Action Items
-- [ ] Choose implementation path (Option A recommended).
-- [ ] Prototype integration with `realtime-bpm-analyzer`.
+- [x] Choose implementation path (Option A recommended).
+- [x] Prototype integration with `realtime-bpm-analyzer`.
 - [ ] Benchmark accuracy against the established ground truth dataset.
 - [ ] Replace `music-tempo` if accuracy improvements are confirmed.
+
+## Progress
+- Chosen path: Option A, using `react-native-audio-api` to provide the Web Audio primitives required by `realtime-bpm-analyzer`.
+- Prototype: `estimateBpm` now keeps the existing video-to-WAV extraction and signal validation, then tries `realtime-bpm-analyzer`'s offline `analyzeFullBuffer` path first.
+- Risk control: `music-tempo` remains as a fallback until a ground-truth benchmark confirms the new analyzer is more accurate on target dance videos.

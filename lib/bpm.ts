@@ -1,7 +1,10 @@
 import type { BpmSource, DanceVideo } from "@/lib/videos";
-import * as FileSystem from "expo-file-system/legacy";
+import { File, Paths } from "expo-file-system";
 import MusicTempo from "music-tempo";
-
+import { AudioContext } from "react-native-audio-api";
+import { extractAudio } from "expo-video-audio-extractor";
+import { toNativeFilePath } from "../utils/path";
+import { analyzeFullBuffer } from "realtime-bpm-analyzer";
 export type BpmTiming = {
   bpm: number | null;
   countSeconds: number | null;
@@ -19,18 +22,13 @@ export type BpmEstimate = {
 const minDanceBpm = 70;
 const maxDanceBpm = 180;
 const analysisSeconds = 75;
-const targetSampleRate = 16_000;
+const realtimeAnalysisSeconds = 30;
+const targetSampleRate = 22_050;
 const minimumConfidence = 0.35;
+const candidateAgreementBpm = 4;
 
-export function parseBpmInput(value: string): number | null {
-  const bpm = Number(value);
-
-  if (!Number.isFinite(bpm) || bpm <= 0) {
-    return null;
-  }
-
-  return bpm;
-}
+import { parseNumberInput as _parseNumberInput } from "../utils/input";
+export const parseNumberInput = _parseNumberInput;
 
 export function deriveBpmTiming(bpm: number | null): BpmTiming {
   if (!bpm) {
@@ -62,18 +60,16 @@ export function formatBpm(video: Pick<DanceVideo, "bpm" | "bpmSource">) {
 }
 
 export async function estimateBpm(uri: string): Promise<BpmEstimate> {
-  const outputUri = `${FileSystem.cacheDirectory ?? ""}bpm-analysis-${Date.now()}.wav`;
+  const outputFile = makeCacheFile(`bpm-analysis-${Date.now()}.wav`);
 
-  if (!FileSystem.cacheDirectory) {
+  if (!outputFile) {
     return unavailable("Audio cache is unavailable.");
   }
 
   try {
-    const { extractAudio } = await import("expo-video-audio-extractor");
-
     await extractAudio({
       video: toNativeFilePath(uri),
-      output: toNativeFilePath(outputUri),
+      output: toNativeFilePath(outputFile.uri),
       format: "wav",
       start: 0,
       duration: analysisSeconds,
@@ -81,13 +77,13 @@ export async function estimateBpm(uri: string): Promise<BpmEstimate> {
       sampleRate: targetSampleRate,
     });
 
-    const analysis = await readAnalysisSamples(outputUri);
+    const analysis = await readAnalysisSamples(outputFile);
 
     if (!hasEnoughSignal(analysis.samples, analysis.sampleRate)) {
       return unavailable("No steady musical signal was found.");
     }
 
-    const detected = detectTempo(analysis);
+    const detected = await detectTempo(analysis);
 
     if (!detected.bpm || detected.confidence < minimumConfidence) {
       return unavailable("Detected tempo confidence was too low.");
@@ -97,8 +93,18 @@ export async function estimateBpm(uri: string): Promise<BpmEstimate> {
   } catch (error) {
     return unavailable(error instanceof Error ? error.message : String(error));
   } finally {
-    await FileSystem.deleteAsync(outputUri, { idempotent: true }).catch(() => {});
+    try {
+      outputFile.delete();
+    } catch {}
   }
+}
+
+function makeCacheFile(fileName: string) {
+  if (!Paths.cache.uri) {
+    return null;
+  }
+
+  return new File(Paths.cache, fileName);
 }
 
 type AnalysisSamples = {
@@ -112,17 +118,122 @@ type TempoResult = {
   bestAgent?: { score?: number };
 };
 
-async function readAnalysisSamples(outputUri: string): Promise<AnalysisSamples> {
-  const base64 = await FileSystem.readAsStringAsync(outputUri, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
-  const wav = decodeWav(base64ToBytes(base64));
+type RealtimeTempo = {
+  count: number;
+  confidence?: number;
+  tempo: number;
+};
+
+async function readAnalysisSamples(outputFile: File): Promise<AnalysisSamples> {
+  const wav = decodeWav(await outputFile.bytes());
   const trimmedSamples = trimLeadingSilence(wav.samples, wav.sampleRate);
 
   return prepareAnalysisSamples(trimmedSamples, wav.sampleRate);
 }
 
-function detectTempo({ samples, sampleRate }: AnalysisSamples) {
+async function detectTempo(analysis: AnalysisSamples) {
+  const focusedAnalysis = selectRhythmicWindow(analysis);
+  const [realtimeTempo, musicTempo] = await Promise.all([
+    detectRealtimeTempo(focusedAnalysis).catch(() => null),
+    Promise.resolve(detectMusicTempo(focusedAnalysis)),
+  ]);
+
+  return chooseTempoCandidate([realtimeTempo, musicTempo]);
+}
+
+async function detectRealtimeTempo({ samples, sampleRate }: AnalysisSamples) {
+  const realtimeSamples = samples.subarray(
+    0,
+    Math.min(samples.length, sampleRate * realtimeAnalysisSeconds),
+  );
+  const audioContext = new AudioContext();
+
+  try {
+    const audioBuffer = audioContext.createBuffer(
+      1,
+      realtimeSamples.length,
+      sampleRate,
+    );
+    audioBuffer.copyToChannel(realtimeSamples, 0);
+
+    const tempos = await analyzeFullBuffer(
+      audioBuffer as unknown as AudioBuffer,
+    );
+    const bestTempo = tempos[0];
+
+    if (!bestTempo) {
+      return { bpm: null, confidence: 0 };
+    }
+
+    return {
+      bpm: normalizeDanceBpm(bestTempo.tempo),
+      confidence: estimateRealtimeConfidence(
+        bestTempo,
+        realtimeSamples.length / sampleRate,
+      ),
+    };
+  } finally {
+    await audioContext.close().catch(() => {});
+  }
+}
+
+function estimateRealtimeConfidence(
+  tempo: RealtimeTempo,
+  durationSeconds: number,
+) {
+  if (Number.isFinite(tempo.confidence) && tempo.confidence) {
+    return roundConfidence(tempo.confidence);
+  }
+
+  const expectedBeats = Math.max(1, (durationSeconds / 60) * tempo.tempo);
+
+  return roundConfidence(Math.min(1, tempo.count / expectedBeats));
+}
+
+type TempoCandidate = {
+  bpm: number | null;
+  confidence: number;
+};
+
+function chooseTempoCandidate(candidates: Array<TempoCandidate | null>) {
+  const validCandidates = candidates.filter(
+    (candidate): candidate is TempoCandidate => Boolean(candidate?.bpm),
+  );
+
+  if (validCandidates.length === 0) {
+    return { bpm: null, confidence: 0 };
+  }
+
+  const [bestCandidate] = validCandidates.sort(
+    (left, right) => right.confidence - left.confidence,
+  );
+  const agreeingCandidates = validCandidates.filter(
+    (candidate) =>
+      Math.abs((candidate.bpm ?? 0) - (bestCandidate.bpm ?? 0)) <=
+      candidateAgreementBpm,
+  );
+
+  if (agreeingCandidates.length > 1) {
+    const totalConfidence = agreeingCandidates.reduce(
+      (sum, candidate) => sum + candidate.confidence,
+      0,
+    );
+    const weightedBpm =
+      agreeingCandidates.reduce(
+        (sum, candidate) => sum + (candidate.bpm ?? 0) * candidate.confidence,
+        0,
+      ) / Math.max(totalConfidence, Number.EPSILON);
+
+    return {
+      bpm: normalizeDanceBpm(weightedBpm),
+      confidence: roundConfidence(Math.min(1, bestCandidate.confidence + 0.15)),
+    };
+  }
+
+  return bestCandidate;
+}
+
+function detectMusicTempo({ samples, sampleRate }: AnalysisSamples) {
   const hopSize = Math.max(1, Math.round(sampleRate / 100));
   const tempo = new MusicTempo(samples, {
     bufferSize: 2048,
@@ -165,7 +276,10 @@ function estimateConfidence(tempo: TempoResult, durationSeconds: number) {
   const beatScore = Math.min(1, beats / 16);
   const densityScore = Math.min(1, beatDensity / 1.1);
   const onsetScore = Math.min(1, events / 30);
-  const agentScoreNormalized = Math.min(1, agentScore / Math.max(1, beats * 12));
+  const agentScoreNormalized = Math.min(
+    1,
+    agentScore / Math.max(1, beats * 12),
+  );
 
   return roundConfidence(
     beatScore * 0.35 +
@@ -185,7 +299,11 @@ function trimLeadingSilence(samples: Float32Array, sampleRate: number) {
   let firstAudibleWindow = 0;
 
   for (let start = 0; start < samples.length; start += windowSize) {
-    const rms = windowRms(samples, start, Math.min(samples.length, start + windowSize));
+    const rms = windowRms(
+      samples,
+      start,
+      Math.min(samples.length, start + windowSize),
+    );
     maxRms = Math.max(maxRms, rms);
   }
 
@@ -196,7 +314,11 @@ function trimLeadingSilence(samples: Float32Array, sampleRate: number) {
   const threshold = Math.max(0.01, maxRms * 0.15);
 
   for (let start = 0; start < samples.length; start += windowSize) {
-    const rms = windowRms(samples, start, Math.min(samples.length, start + windowSize));
+    const rms = windowRms(
+      samples,
+      start,
+      Math.min(samples.length, start + windowSize),
+    );
 
     if (rms >= threshold) {
       firstAudibleWindow = Math.max(0, start - sampleRate);
@@ -208,18 +330,94 @@ function trimLeadingSilence(samples: Float32Array, sampleRate: number) {
 }
 
 function prepareAnalysisSamples(samples: Float32Array, sampleRate: number) {
+  const filteredSamples = lowPassSamples(samples, sampleRate, 180);
+
   if (sampleRate <= targetSampleRate) {
-    return { samples, sampleRate };
+    return { samples: filteredSamples, sampleRate };
   }
 
   const ratio = sampleRate / targetSampleRate;
-  const downsampled = new Float32Array(Math.floor(samples.length / ratio));
+  const downsampled = new Float32Array(
+    Math.floor(filteredSamples.length / ratio),
+  );
 
   for (let index = 0; index < downsampled.length; index += 1) {
-    downsampled[index] = samples[Math.floor(index * ratio)];
+    downsampled[index] = filteredSamples[Math.floor(index * ratio)];
   }
 
   return { samples: downsampled, sampleRate: targetSampleRate };
+}
+
+function lowPassSamples(
+  samples: Float32Array,
+  sampleRate: number,
+  cutoffHz: number,
+) {
+  if (samples.length === 0) {
+    return samples;
+  }
+
+  const rc = 1 / (2 * Math.PI * cutoffHz);
+  const dt = 1 / sampleRate;
+  const alpha = dt / (rc + dt);
+  const filtered = new Float32Array(samples.length);
+  filtered[0] = samples[0];
+
+  for (let index = 1; index < samples.length; index += 1) {
+    filtered[index] =
+      filtered[index - 1] + alpha * (samples[index] - filtered[index - 1]);
+  }
+
+  return filtered;
+}
+
+function selectRhythmicWindow({
+  samples,
+  sampleRate,
+}: AnalysisSamples): AnalysisSamples {
+  const windowLength = sampleRate * realtimeAnalysisSeconds;
+
+  if (samples.length <= windowLength) {
+    return { samples, sampleRate };
+  }
+
+  const step = Math.max(sampleRate * 5, Math.round(windowLength / 4));
+  let bestStart = 0;
+  let bestScore = -Infinity;
+
+  for (let start = 0; start + windowLength <= samples.length; start += step) {
+    const end = start + windowLength;
+    const score = rhythmicWindowScore(samples, start, end);
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestStart = start;
+    }
+  }
+
+  return {
+    samples: samples.subarray(bestStart, bestStart + windowLength),
+    sampleRate,
+  };
+}
+
+function rhythmicWindowScore(
+  samples: Float32Array,
+  start: number,
+  end: number,
+) {
+  let energy = 0;
+  let flux = 0;
+  let previous = Math.abs(samples[start] ?? 0);
+
+  for (let index = start; index < end; index += 1) {
+    const value = Math.abs(samples[index]);
+    energy += value * value;
+    flux += Math.max(0, value - previous);
+    previous = value;
+  }
+
+  return energy + flux * 12;
 }
 
 function windowRms(samples: Float32Array, start: number, end: number) {
@@ -317,7 +515,8 @@ function decodeWavSamples(
     let sum = 0;
 
     for (let channel = 0; channel < format.channels; channel += 1) {
-      const sampleOffset = dataOffset + frame * frameSize + channel * bytesPerSample;
+      const sampleOffset =
+        dataOffset + frame * frameSize + channel * bytesPerSample;
       sum += readPcmSample(view, sampleOffset, format);
     }
 
@@ -352,36 +551,6 @@ function readPcmSample(view: DataView, offset: number, format: WavFormat) {
   }
 }
 
-function base64ToBytes(base64: string) {
-  const cleaned = base64.replace(/[\r\n\s]/g, "");
-  const padding = cleaned.endsWith("==") ? 2 : cleaned.endsWith("=") ? 1 : 0;
-  const bytes = new Uint8Array((cleaned.length * 3) / 4 - padding);
-  let byteIndex = 0;
-
-  for (let index = 0; index < cleaned.length; index += 4) {
-    const chunk =
-      (base64Value(cleaned.charCodeAt(index)) << 18) |
-      (base64Value(cleaned.charCodeAt(index + 1)) << 12) |
-      (base64Value(cleaned.charCodeAt(index + 2)) << 6) |
-      base64Value(cleaned.charCodeAt(index + 3));
-
-    if (byteIndex < bytes.length) bytes[byteIndex++] = (chunk >> 16) & 0xff;
-    if (byteIndex < bytes.length) bytes[byteIndex++] = (chunk >> 8) & 0xff;
-    if (byteIndex < bytes.length) bytes[byteIndex++] = chunk & 0xff;
-  }
-
-  return bytes;
-}
-
-function base64Value(code: number) {
-  if (code >= 65 && code <= 90) return code - 65;
-  if (code >= 97 && code <= 122) return code - 71;
-  if (code >= 48 && code <= 57) return code + 4;
-  if (code === 43) return 62;
-  if (code === 47) return 63;
-  return 0;
-}
-
 function readAscii(view: DataView, offset: number, length: number) {
   let value = "";
 
@@ -390,10 +559,6 @@ function readAscii(view: DataView, offset: number, length: number) {
   }
 
   return value;
-}
-
-function toNativeFilePath(uri: string) {
-  return uri.startsWith("file://") ? decodeURI(uri.slice("file://".length)) : uri;
 }
 
 function unavailable(error?: string): BpmEstimate {
