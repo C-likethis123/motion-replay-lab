@@ -1,88 +1,60 @@
-import { Switch, Text, TextInput, View } from "react-native";
-import { Search } from "lucide-react-native";
+import { Text, View } from "react-native";
+import { Plus, Search } from "lucide-react-native";
+import { IconButton } from "@/components/icon-button";
+import { TextInputField } from "@/components/labelled-text-input";
 import { colors, radii, spacing, typography } from "@/lib/theme";
 import { pluralise } from "@/utils/i18n";
 
 type LibraryControlsProps = {
-  onlyBookmarked: boolean;
   query: string;
   videoCount: number;
-  onChangeOnlyBookmarked: (value: boolean) => void;
   onChangeQuery: (value: string) => void;
+  onAddVideo: () => void;
 };
 
 export function LibraryControls({
-  onlyBookmarked,
   query,
   videoCount,
-  onChangeOnlyBookmarked,
   onChangeQuery,
+  onAddVideo,
 }: LibraryControlsProps) {
   return (
     <>
-      <View
+      <Text
+        selectable
         style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: spacing.lg,
-          paddingHorizontal: spacing.xxl,
-          minHeight: 48,
-          borderRadius: radii.md,
-          borderCurve: "continuous",
-          backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.borderStrong,
+          color: colors.textSecondary,
+          fontSize: typography.size.lg,
+          fontWeight: typography.weight.semibold,
         }}
       >
-        <Search size={18} color={colors.textMuted} />
-        <TextInput
-          value={query}
-          onChangeText={onChangeQuery}
-          placeholder="Search videos"
-          placeholderTextColor={colors.textSubtle}
-          style={{ flex: 1, color: colors.text, fontSize: typography.size.lg }}
-        />
-      </View>
+        {pluralise(videoCount, "video")}
+      </Text>
 
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
-          justifyContent: "space-between",
-          gap: spacing.xxxl,
+          gap: spacing.md,
         }}
       >
-        <View>
-          <Text selectable style={{ color: colors.textMuted, fontSize: typography.size.xs }}>
-            Playlist
-          </Text>
-          <Text
-            selectable
-            style={{
-              color: colors.text,
-              fontSize: typography.size.display,
-              fontWeight: typography.weight.bold,
-              marginTop: spacing.xxs,
-            }}
-          >
-            {pluralise(videoCount, "video")}
-          </Text>
-        </View>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: spacing.md,
+        <TextInputField
+          value={query}
+          onChangeText={onChangeQuery}
+          placeholder="Search videos"
+          leftAccessory={<Search size={18} color={colors.textMuted} />}
+          style={{ flex: 1, minWidth: 0 }}
+          fieldStyle={{
+            borderColor: colors.borderStrong,
+            borderRadius: radii.md,
           }}
-        >
-          <Text selectable style={{ color: colors.accentText, fontSize: typography.size.sm }}>
-            Loops
-          </Text>
-          <Switch
-            value={onlyBookmarked}
-            onValueChange={onChangeOnlyBookmarked}
-          />
-        </View>
+        />
+        <IconButton
+          icon={Plus}
+          label="Add video"
+          onPress={onAddVideo}
+          tone="primary"
+        />
       </View>
     </>
   );

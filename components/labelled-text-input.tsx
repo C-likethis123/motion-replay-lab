@@ -1,53 +1,88 @@
-import { TextInput as RnTextInput, View, Text } from "react-native";
+import type { ReactNode } from "react";
+import {
+  TextInput as RnTextInput,
+  View,
+  Text,
+  type StyleProp,
+  type TextInputProps,
+  type TextStyle,
+  type ViewStyle,
+} from "react-native";
 import { colors, radii, spacing, typography } from "@/lib/theme";
 
-export function LabelledTextInput({
+type TextInputFieldProps = Omit<TextInputProps, "style"> & {
+  label?: string;
+  error?: string;
+  leftAccessory?: ReactNode;
+  fieldStyle?: StyleProp<ViewStyle>;
+  inputStyle?: StyleProp<TextStyle>;
+  style?: StyleProp<ViewStyle>;
+};
+
+export function TextInputField({
   label,
-  value,
-  onChangeText,
-  keyboardType,
   multiline,
   error,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  keyboardType?: "default" | "number-pad";
-  multiline?: boolean;
-  error?: string;
-}) {
+  leftAccessory,
+  fieldStyle,
+  inputStyle,
+  style,
+  autoCapitalize = "none",
+  placeholderTextColor = colors.textSubtle,
+  ...textInputProps
+}: TextInputFieldProps) {
+  const hasLeftAccessory = Boolean(leftAccessory);
+
   return (
-    <View style={{ gap: spacing.sm }}>
-      <Text
-        selectable
-        style={{
-          color: colors.textSecondary,
-          fontSize: typography.size.xs,
-          fontWeight: typography.weight.semibold,
-        }}
+    <View style={[{ gap: spacing.sm }, style]}>
+      {label && (
+        <Text
+          selectable
+          style={{
+            color: colors.textSecondary,
+            fontSize: typography.size.xs,
+            fontWeight: typography.weight.semibold,
+          }}
+        >
+          {label}
+        </Text>
+      )}
+      <View
+        style={[
+          {
+            minHeight: multiline ? 124 : 48,
+            flexDirection: "row",
+            alignItems: multiline ? "flex-start" : "center",
+            gap: hasLeftAccessory ? spacing.lg : 0,
+            paddingHorizontal: spacing.xxl,
+            paddingVertical: multiline ? spacing.xl : 0,
+            borderRadius: radii.sm,
+            borderCurve: "continuous",
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: error ? colors.dangerBorder : colors.border,
+          },
+          fieldStyle,
+        ]}
       >
-        {label}
-      </Text>
-      <RnTextInput
-        value={value}
-        onChangeText={onChangeText}
-        keyboardType={keyboardType}
-        multiline={multiline}
-        autoCapitalize="none"
-        style={{
-          minHeight: multiline ? 124 : 48,
-          paddingHorizontal: spacing.xxl,
-          paddingVertical: multiline ? spacing.xl : 0,
-          borderRadius: radii.sm,
-          borderCurve: "continuous",
-          backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: error ? colors.dangerBorder : colors.border,
-          color: colors.text,
-          fontSize: typography.size.lg,
-          textAlignVertical: multiline ? "top" : "center",
-        }}
-      />
+        {leftAccessory}
+        <RnTextInput
+          multiline={multiline}
+          autoCapitalize={autoCapitalize}
+          placeholderTextColor={placeholderTextColor}
+          style={[
+            {
+              flex: 1,
+              minWidth: 0,
+              color: colors.text,
+              fontSize: typography.size.lg,
+              textAlignVertical: multiline ? "top" : "center",
+            },
+            inputStyle,
+          ]}
+          {...textInputProps}
+        />
+      </View>
       {error && (
         <Text style={{ color: colors.danger, fontSize: typography.size.xs }}>
           {error}
@@ -55,4 +90,13 @@ export function LabelledTextInput({
       )}
     </View>
   );
+}
+
+export function LabelledTextInput({
+  label,
+  ...textInputProps
+}: TextInputFieldProps & {
+  label: string;
+}) {
+  return <TextInputField label={label} {...textInputProps} />;
 }

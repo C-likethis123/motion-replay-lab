@@ -1,6 +1,6 @@
 import { View } from "react-native";
 import { Link } from "expo-router";
-import { FileVideo, Plus } from "lucide-react-native";
+import { FileVideo } from "lucide-react-native";
 import { Card } from "@/components/card";
 import { EmptyState } from "@/components/empty-state";
 import { Pill } from "@/components/pill";
@@ -11,21 +11,15 @@ import { pluralise } from "@/utils/i18n";
 
 type LibraryVideoListProps = {
   videos: DanceVideo[];
-  onAddVideo: () => void;
 };
 
-export function LibraryVideoList({
-  videos,
-  onAddVideo,
-}: LibraryVideoListProps) {
+export function LibraryVideoList({ videos }: LibraryVideoListProps) {
   if (videos.length === 0) {
     return (
       <EmptyState
-        icon={Plus}
+        icon={FileVideo}
         title="Add your first video"
         description="Build your practice library by choosing a dance video from this device."
-        actionLabel="Add video"
-        onAction={onAddVideo}
       />
     );
   }

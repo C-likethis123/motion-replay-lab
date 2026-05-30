@@ -7,8 +7,8 @@ type EmptyStateProps = {
   icon: ComponentType<LucideProps>;
   title: string;
   description: string;
-  actionLabel: string;
-  onAction: () => void;
+  actionLabel?: string;
+  onAction?: () => void;
 };
 
 export function EmptyState({
@@ -72,38 +72,40 @@ export function EmptyState({
         </Text>
       </View>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={actionLabel}
-        onPress={onAction}
-        style={({ pressed }) => [
-          {
-            minHeight: 44,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: spacing.md,
-            paddingHorizontal: spacing.xxxl,
-            borderRadius: radii.sm,
-            borderCurve: "continuous",
-            borderWidth: 1,
-            borderColor: colors.primary,
-            backgroundColor: colors.primary,
-            opacity: pressed ? opacity.pressed : 1,
-          },
-        ]}
-      >
-        <Icon size={18} color={colors.primaryOn} strokeWidth={2.2} />
-        <Text
-          style={{
-            color: colors.primaryOn,
-            fontSize: typography.size.md,
-            fontWeight: typography.weight.semibold,
-          }}
+      {actionLabel && onAction && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={actionLabel}
+          onPress={onAction}
+          style={({ pressed }) => [
+            {
+              minHeight: 44,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: spacing.md,
+              paddingHorizontal: spacing.xxxl,
+              borderRadius: radii.sm,
+              borderCurve: "continuous",
+              borderWidth: 1,
+              borderColor: colors.primary,
+              backgroundColor: colors.primary,
+              opacity: pressed ? opacity.pressed : 1,
+            },
+          ]}
         >
-          {actionLabel}
-        </Text>
-      </Pressable>
+          <Icon size={18} color={colors.primaryOn} strokeWidth={2.2} />
+          <Text
+            style={{
+              color: colors.primaryOn,
+              fontSize: typography.size.md,
+              fontWeight: typography.weight.semibold,
+            }}
+          >
+            {actionLabel}
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }
