@@ -6,6 +6,7 @@ import { createVideoPlayer } from "expo-video";
 import { Plus } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { useForm, useWatch } from "react-hook-form";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddVideoDraft, AddVideoModal } from "@/components/add-video-modal";
 import { IconButton } from "@/components/icon-button";
 import { LibraryControls } from "@/components/library-controls";
@@ -30,6 +31,7 @@ const emptyVideo: AddVideoDraft = {
 };
 
 export default function LibraryScreen() {
+  const insets = useSafeAreaInsets();
   const { videos, addVideo } = useVideos();
   const [query, setQuery] = useState("");
   const [showAdd, setShowAdd] = useState(false);
@@ -153,7 +155,7 @@ export default function LibraryScreen() {
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{
           padding: spacing.screen,
-          paddingBottom: spacing.screenBottom,
+          paddingBottom: spacing.screenBottom + insets.bottom,
           gap: spacing.screenGap,
         }}
       >
