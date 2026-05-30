@@ -41,7 +41,11 @@ export function AddVideoModal({
   onSave,
 }: AddVideoModalProps) {
   return (
-    <Modal animationType="slide" presentationStyle="pageSheet" visible={visible}>
+    <Modal
+      animationType="slide"
+      presentationStyle="pageSheet"
+      visible={visible}
+    >
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{
@@ -111,7 +115,7 @@ export function AddVideoModal({
           leftAccessory={<FileVideo size={18} color={colors.textSecondary} />}
           onPress={onPickVideo}
         />
-        <BpmDetectionStatus estimate={estimate} isAnalyzing={isAnalyzing} />
+        {!isAnalyzing && <BpmDetectionStatus estimate={estimate} />}
         <Controller
           control={control}
           name="thumbnailUri"
@@ -168,14 +172,8 @@ export function AddVideoModal({
   );
 }
 
-function BpmDetectionStatus({
-  estimate,
-  isAnalyzing,
-}: {
-  estimate: BpmEstimate | null;
-  isAnalyzing: boolean;
-}) {
-  const label = getBpmStatusLabel(estimate, isAnalyzing);
+function BpmDetectionStatus({ estimate }: { estimate: BpmEstimate | null }) {
+  const label = getBpmStatusLabel(estimate);
   const detail =
     estimate?.source === "detected"
       ? `${Math.round(estimate.confidence * 100)}% confidence`
@@ -203,23 +201,18 @@ function BpmDetectionStatus({
       >
         {label}
       </Text>
-      {detail ? (
-        <Text style={{ color: colors.textSecondary, fontSize: typography.size.xs }}>
+      {detail && (
+        <Text
+          style={{ color: colors.textSecondary, fontSize: typography.size.xs }}
+        >
           {detail}
         </Text>
-      ) : null}
+      )}
     </View>
   );
 }
 
-function getBpmStatusLabel(
-  estimate: BpmEstimate | null,
-  isAnalyzing: boolean,
-) {
-  if (isAnalyzing) {
-    return "Analyzing BPM";
-  }
-
+function getBpmStatusLabel(estimate: BpmEstimate | null) {
   if (!estimate) {
     return "BPM will be detected after choosing a video";
   }

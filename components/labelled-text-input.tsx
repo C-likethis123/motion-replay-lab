@@ -43,11 +43,11 @@ export function LabelledTextInput({
           fontSize: typography.size.lg,
         }}
       />
-      {error ? (
+      {error && (
         <Text style={{ color: colors.danger, fontSize: typography.size.xs }}>
           {error}
         </Text>
-      ) : null}
+      )}
     </View>
   );
 }
