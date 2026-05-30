@@ -10,7 +10,7 @@ import {
   ViewProps,
   ViewStyle,
 } from "react-native";
-import { colors, opacity, radii, shadows, spacing } from "@/lib/theme";
+import { colors, opacity, radii, shadows, spacing, typography } from "@/lib/theme";
 
 type CardRootProps = PressableProps & {
   style?: StyleProp<ViewStyle>;
@@ -121,7 +121,14 @@ function CardTitle({ children, style, ...props }: CardTextProps) {
   return (
     <Text
       selectable
-      style={[{ color: colors.text, fontSize: 18, fontWeight: "700" }, style]}
+      style={[
+        {
+          color: colors.text,
+          fontSize: typography.size.xl,
+          fontWeight: typography.weight.bold,
+        },
+        style,
+      ]}
       {...props}
     >
       {children}
@@ -133,7 +140,10 @@ function CardDescription({ children, style, ...props }: CardTextProps) {
   return (
     <Text
       selectable
-      style={[{ color: colors.textSecondary, fontSize: 14 }, style]}
+      style={[
+        { color: colors.textSecondary, fontSize: typography.size.sm },
+        style,
+      ]}
       {...props}
     >
       {children}

@@ -24,7 +24,7 @@ import {
 } from "lucide-react-native";
 import { IconButton } from "@/components/icon-button";
 import { deriveBpmTiming, parseBpmInput } from "@/lib/bpm";
-import { colors, opacity, radii } from "@/lib/theme";
+import { colors, opacity, radii, spacing, typography } from "@/lib/theme";
 import { DanceVideo, PracticeSection, useVideos } from "@/lib/videos";
 
 const speeds = [0.5, 0.75, 1, 1.25];
@@ -72,11 +72,18 @@ export default function VideoPracticeScreen() {
         <Stack.Screen options={{ title: "Video" }} />
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={{ padding: 20, gap: 16 }}
+          contentContainerStyle={{
+            padding: spacing.screen,
+            gap: spacing.xxxl,
+          }}
         >
           <Text
             selectable
-            style={{ color: colors.text, fontSize: 22, fontWeight: "700" }}
+            style={{
+              color: colors.text,
+              fontSize: typography.size.xxxl,
+              fontWeight: typography.weight.bold,
+            }}
           >
             Video not found
           </Text>
@@ -143,7 +150,7 @@ export default function VideoPracticeScreen() {
         options={{
           title: video.title,
           headerRight: () => (
-            <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flexDirection: "row", gap: spacing.md }}>
               <IconButton
                 icon={Pencil}
                 label="Edit video"
@@ -164,7 +171,11 @@ export default function VideoPracticeScreen() {
       />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={{ padding: 20, paddingBottom: 42, gap: 18 }}
+        contentContainerStyle={{
+          padding: spacing.screen,
+          paddingBottom: spacing.screenBottomTall,
+          gap: spacing.screenGap,
+        }}
       >
         <View
           style={{
@@ -188,17 +199,21 @@ export default function VideoPracticeScreen() {
           />
         </View>
 
-        <View style={{ gap: 10 }}>
+        <View style={{ gap: spacing.lg }}>
           <View
             style={{
               flexDirection: "row",
               justifyContent: "space-between",
-              gap: 12,
+              gap: spacing.xl,
             }}
           >
             <Text
               selectable
-              style={{ color: colors.text, fontSize: 18, fontWeight: "700" }}
+              style={{
+                color: colors.text,
+                fontSize: typography.size.xl,
+                fontWeight: typography.weight.bold,
+              }}
             >
               {formatTime(currentTime)}
             </Text>
@@ -206,7 +221,7 @@ export default function VideoPracticeScreen() {
               selectable
               style={{
                 color: colors.textMuted,
-                fontSize: 18,
+                fontSize: typography.size.xl,
                 fontVariant: ["tabular-nums"],
               }}
             >
@@ -232,7 +247,11 @@ export default function VideoPracticeScreen() {
         </View>
 
         <View
-          style={{ flexDirection: "row", justifyContent: "center", gap: 12 }}
+          style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            gap: spacing.xl,
+          }}
         >
           <IconButton
             icon={SkipBack}
@@ -265,8 +284,8 @@ export default function VideoPracticeScreen() {
 
         <View
           style={{
-            padding: 14,
-            gap: 14,
+            padding: spacing.xxl,
+            gap: spacing.xxl,
             borderRadius: radii.lg,
             borderCurve: "continuous",
             backgroundColor: colors.surface,
@@ -282,12 +301,20 @@ export default function VideoPracticeScreen() {
             }}
           >
             <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.lg,
+              }}
             >
               <FlipHorizontal size={18} color={colors.accent} />
               <Text
                 selectable
-                style={{ color: colors.text, fontSize: 16, fontWeight: "700" }}
+                style={{
+                  color: colors.text,
+                  fontSize: typography.size.lg,
+                  fontWeight: typography.weight.bold,
+                }}
               >
                 Mirror
               </Text>
@@ -295,7 +322,9 @@ export default function VideoPracticeScreen() {
             <Switch value={mirrored} onValueChange={setMirrored} />
           </View>
 
-          <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+          <View
+            style={{ flexDirection: "row", gap: spacing.md, flexWrap: "wrap" }}
+          >
             {speeds.map((speed) => (
               <Pressable
                 key={speed}
@@ -306,7 +335,7 @@ export default function VideoPracticeScreen() {
                 }}
                 style={({ pressed }) => ({
                   minHeight: 36,
-                  paddingHorizontal: 14,
+                  paddingHorizontal: spacing.xxl,
                   justifyContent: "center",
                   borderRadius: radii.xl,
                   backgroundColor:
@@ -321,10 +350,10 @@ export default function VideoPracticeScreen() {
                   style={{
                     color:
                       player.playbackRate === speed
-                        ? colors.primaryOn
-                        : colors.accentText,
-                    fontSize: 14,
-                    fontWeight: "700",
+                      ? colors.primaryOn
+                      : colors.accentText,
+                    fontSize: typography.size.sm,
+                    fontWeight: typography.weight.bold,
                   }}
                 >
                   {speed}x
@@ -334,10 +363,14 @@ export default function VideoPracticeScreen() {
           </View>
         </View>
 
-        <View style={{ gap: 10 }}>
+        <View style={{ gap: spacing.lg }}>
           <Text
             selectable
-            style={{ color: colors.text, fontSize: 20, fontWeight: "700" }}
+            style={{
+              color: colors.text,
+              fontSize: typography.size.xxl,
+              fontWeight: typography.weight.bold,
+            }}
           >
             Sections
           </Text>
@@ -351,8 +384,8 @@ export default function VideoPracticeScreen() {
                 onPress={() => jumpTo(section.start)}
                 onLongPress={() => setActiveLoop(selected ? null : section)}
                 style={({ pressed }) => ({
-                  padding: 14,
-                  gap: 10,
+                  padding: spacing.xxl,
+                  gap: spacing.lg,
                   borderRadius: radii.lg,
                   borderCurve: "continuous",
                   backgroundColor: selected
@@ -376,8 +409,8 @@ export default function VideoPracticeScreen() {
                     selectable
                     style={{
                       color: colors.text,
-                      fontSize: 16,
-                      fontWeight: "700",
+                      fontSize: typography.size.lg,
+                      fontWeight: typography.weight.bold,
                     }}
                   >
                     {section.label}
@@ -393,7 +426,7 @@ export default function VideoPracticeScreen() {
                   selectable
                   style={{
                     color: colors.textSecondary,
-                    fontSize: 14,
+                    fontSize: typography.size.sm,
                     fontVariant: ["tabular-nums"],
                   }}
                 >
@@ -413,8 +446,8 @@ export default function VideoPracticeScreen() {
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={{
-            padding: 20,
-            gap: 14,
+            padding: spacing.screen,
+            gap: spacing.xxl,
             backgroundColor: colors.appBackground,
           }}
         >
@@ -427,7 +460,11 @@ export default function VideoPracticeScreen() {
           >
             <Text
               selectable
-              style={{ color: colors.text, fontSize: 24, fontWeight: "700" }}
+              style={{
+                color: colors.text,
+                fontSize: typography.size.title,
+                fontWeight: typography.weight.bold,
+              }}
             >
               Edit video
             </Text>
@@ -490,7 +527,11 @@ export default function VideoPracticeScreen() {
             })}
           >
             <Text
-              style={{ color: colors.primaryOn, fontSize: 16, fontWeight: "700" }}
+              style={{
+                color: colors.primaryOn,
+                fontSize: typography.size.lg,
+                fontWeight: typography.weight.bold,
+              }}
             >
               Save changes
             </Text>
@@ -563,10 +604,14 @@ function VideoField({
   multiline?: boolean;
 }) {
   return (
-    <View style={{ gap: 6 }}>
+    <View style={{ gap: spacing.sm }}>
       <Text
         selectable
-        style={{ color: colors.textSecondary, fontSize: 13, fontWeight: "600" }}
+        style={{
+          color: colors.textSecondary,
+          fontSize: typography.size.xs,
+          fontWeight: typography.weight.semibold,
+        }}
       >
         {label}
       </Text>
@@ -578,15 +623,15 @@ function VideoField({
         autoCapitalize="none"
         style={{
           minHeight: multiline ? 124 : 48,
-          paddingHorizontal: 14,
-          paddingVertical: multiline ? 12 : 0,
+          paddingHorizontal: spacing.xxl,
+          paddingVertical: multiline ? spacing.xl : 0,
           borderRadius: radii.sm,
           borderCurve: "continuous",
           backgroundColor: colors.surface,
           borderWidth: 1,
           borderColor: colors.border,
           color: colors.text,
-          fontSize: 16,
+          fontSize: typography.size.lg,
           textAlignVertical: multiline ? "top" : "center",
         }}
       />

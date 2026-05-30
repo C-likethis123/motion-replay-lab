@@ -1,5 +1,5 @@
 import { TextInput as RnTextInput, View, Text } from "react-native";
-import { colors, radii, spacing } from "@/lib/theme";
+import { colors, radii, spacing, typography } from "@/lib/theme";
 
 export function LabelledTextInput({
   label,
@@ -16,7 +16,11 @@ export function LabelledTextInput({
     <View style={{ gap: spacing.sm }}>
       <Text
         selectable
-        style={{ color: colors.textSecondary, fontSize: 13, fontWeight: "600" }}
+        style={{
+          color: colors.textSecondary,
+          fontSize: typography.size.xs,
+          fontWeight: typography.weight.semibold,
+        }}
       >
         {label}
       </Text>
@@ -34,7 +38,7 @@ export function LabelledTextInput({
           borderWidth: 1,
           borderColor: colors.border,
           color: colors.text,
-          fontSize: 16,
+          fontSize: typography.size.lg,
         }}
       />
     </View>
