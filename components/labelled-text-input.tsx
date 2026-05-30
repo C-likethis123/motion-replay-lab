@@ -6,11 +6,13 @@ export function LabelledTextInput({
   value,
   onChangeText,
   keyboardType,
+  error,
 }: {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
   keyboardType?: "default" | "number-pad";
+  error?: string;
 }) {
   return (
     <View style={{ gap: spacing.sm }}>
@@ -36,11 +38,16 @@ export function LabelledTextInput({
           borderCurve: "continuous",
           backgroundColor: colors.surface,
           borderWidth: 1,
-          borderColor: colors.border,
+          borderColor: error ? colors.dangerBorder : colors.border,
           color: colors.text,
           fontSize: typography.size.lg,
         }}
       />
+      {error && (
+        <Text style={{ color: colors.danger, fontSize: typography.size.xs }}>
+          {error}
+        </Text>
+      )}
     </View>
   );
 }

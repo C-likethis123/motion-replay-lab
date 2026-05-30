@@ -1,26 +1,23 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Alert, ScrollView } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import { Stack } from "expo-router";
 import { createVideoPlayer } from "expo-video";
 import { Plus } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
-import {
-  AddVideoDraft,
-  AddVideoModal,
-} from "@/components/add-video-modal";
+import { useForm, useWatch } from "react-hook-form";
+import { AddVideoDraft, AddVideoModal } from "@/components/add-video-modal";
 import { IconButton } from "@/components/icon-button";
 import { LibraryControls } from "@/components/library-controls";
 import { LibraryVideoList } from "@/components/library-video-list";
 import {
-  BpmEstimate,
   deriveBpmTiming,
   deriveDetectedBpmTiming,
-  estimateBpm,
   parseBpmInput,
 } from "@/lib/bpm";
 import { spacing } from "@/lib/theme";
 import { useVideos, VideoThumbnailSource } from "@/lib/videos";
+import { useBpmDetection } from "@/hooks/bpm/useBpmDetection";
 
 const emptyVideo: AddVideoDraft = {
   title: "",
@@ -37,10 +34,24 @@ export default function LibraryScreen() {
   const [query, setQuery] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [onlyBookmarked, setOnlyBookmarked] = useState(false);
-  const [draft, setDraft] = useState(emptyVideo);
-  const [bpmEstimate, setBpmEstimate] = useState<BpmEstimate | null>(null);
-  const [isEstimatingBpm, setIsEstimatingBpm] = useState(false);
-  const bpmRequestRef = useRef(0);
+  const {
+    control,
+    formState: { errors },
+    getValues,
+    handleSubmit,
+    reset,
+    setValue,
+  } = useForm<AddVideoDraft>({
+    defaultValues: emptyVideo,
+  });
+  const {
+    estimate: bpmEstimate,
+    isEstimating: isEstimatingBpm,
+    detectBpm,
+    reset: resetBpmDetection,
+  } = useBpmDetection(setValue);
+  const sourceName = useWatch({ control, name: "sourceName" });
+  const sourceUri = useWatch({ control, name: "sourceUri" });
 
   const filteredVideos = useMemo(() => {
     return videos.filter((video) => {
@@ -69,46 +80,35 @@ export default function LibraryScreen() {
 
       const asset = result.assets[0];
       const title = titleFromFileName(asset.name);
+      const baseDraft = openSheet ? emptyVideo : getValues();
+      const nextDraft = {
+        ...baseDraft,
+        title: baseDraft.title.trim() ? baseDraft.title : title,
+        sourceUri: asset.uri,
+        sourceName: asset.name,
+      };
 
-      setDraft((current) => {
-        const baseDraft = openSheet ? emptyVideo : current;
-
-        return {
-          ...baseDraft,
-          title: baseDraft.title.trim() ? baseDraft.title : title,
-          sourceUri: asset.uri,
-          sourceName: asset.name,
-        };
-      });
+      if (openSheet) {
+        reset(nextDraft);
+      } else {
+        setValue("title", nextDraft.title, { shouldDirty: true });
+        setValue("sourceUri", nextDraft.sourceUri, { shouldDirty: true });
+        setValue("sourceName", nextDraft.sourceName, { shouldDirty: true });
+      }
 
       if (openSheet) {
         setShowAdd(true);
       }
 
-      const requestId = bpmRequestRef.current + 1;
-      bpmRequestRef.current = requestId;
-      setBpmEstimate(null);
-      setIsEstimatingBpm(true);
-
-      const estimate = await estimateBpm(asset.uri);
-
-      if (bpmRequestRef.current === requestId) {
-        setBpmEstimate(estimate);
-        setDraft((current) => ({
-          ...current,
-          bpm: estimate.bpm?.toString() ?? current.bpm,
-        }));
-        setIsEstimatingBpm(false);
-      }
+      await detectBpm(asset.uri);
     } catch {
       Alert.alert(
         "Could not pick video",
         "Please try selecting the video again.",
       );
-      setIsEstimatingBpm(false);
     }
   }
-  async function saveDraft() {
+  async function saveDraft(draft: AddVideoDraft) {
     if (!draft.title.trim() || !draft.sourceUri.trim() || isEstimatingBpm) {
       return;
     }
@@ -132,7 +132,7 @@ export default function LibraryScreen() {
       sections: [],
     });
     setShowAdd(false);
-    setBpmEstimate(null);
+    resetBpmDetection();
 
     if (process.env.EXPO_OS === "ios") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -168,14 +168,15 @@ export default function LibraryScreen() {
       </ScrollView>
 
       <AddVideoModal
-        draft={draft}
+        control={control}
+        errors={errors}
         estimate={bpmEstimate}
         isAnalyzing={isEstimatingBpm}
+        sourceLabel={sourceName || sourceUri}
         visible={showAdd}
-        onChangeDraft={setDraft}
         onClose={() => setShowAdd(false)}
         onPickVideo={() => pickVideo()}
-        onSave={saveDraft}
+        onSave={handleSubmit(saveDraft)}
       />
     </>
   );

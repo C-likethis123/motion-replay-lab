@@ -1,5 +1,6 @@
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { FileVideo, X } from "lucide-react-native";
+import { Control, Controller, FieldErrors } from "react-hook-form";
 import type { BpmEstimate } from "@/lib/bpm";
 import { IconButton } from "@/components/icon-button";
 import { LabelledTextInput } from "@/components/labelled-text-input";
@@ -17,28 +18,34 @@ export type AddVideoDraft = {
 };
 
 type AddVideoModalProps = {
-  draft: AddVideoDraft;
+  control: Control<AddVideoDraft>;
+  errors: FieldErrors<AddVideoDraft>;
   estimate: BpmEstimate | null;
   isAnalyzing: boolean;
+  sourceLabel: string;
   visible: boolean;
-  onChangeDraft: (draft: AddVideoDraft) => void;
   onClose: () => void;
   onPickVideo: () => void;
   onSave: () => void;
 };
 
 export function AddVideoModal({
-  draft,
+  control,
+  errors,
   estimate,
   isAnalyzing,
+  sourceLabel,
   visible,
-  onChangeDraft,
   onClose,
   onPickVideo,
   onSave,
 }: AddVideoModalProps) {
   return (
-    <Modal animationType="slide" presentationStyle="pageSheet" visible={visible}>
+    <Modal
+      animationType="slide"
+      presentationStyle="pageSheet"
+      visible={visible}
+    >
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{
@@ -66,41 +73,71 @@ export function AddVideoModal({
           </Text>
           <IconButton icon={X} label="Close" onPress={onClose} />
         </View>
-        <LabelledTextInput
-          label="Title"
-          value={draft.title}
-          onChangeText={(title) => onChangeDraft({ ...draft, title })}
+        <Controller
+          control={control}
+          name="title"
+          rules={{ required: "Add a title before saving." }}
+          render={({ field: { onChange, value } }) => (
+            <LabelledTextInput
+              label="Title"
+              value={value}
+              error={errors.title?.message}
+              onChangeText={onChange}
+            />
+          )}
         />
-        <LabelledTextInput
-          label="Style (optional)"
-          value={draft.style}
-          onChangeText={(style) => onChangeDraft({ ...draft, style })}
+        <Controller
+          control={control}
+          name="style"
+          render={({ field: { onChange, value } }) => (
+            <LabelledTextInput
+              label="Style (optional)"
+              value={value}
+              onChangeText={onChange}
+            />
+          )}
         />
-        <LabelledTextInput
-          label="Teacher"
-          value={draft.teacher}
-          onChangeText={(teacher) => onChangeDraft({ ...draft, teacher })}
+        <Controller
+          control={control}
+          name="teacher"
+          render={({ field: { onChange, value } }) => (
+            <LabelledTextInput
+              label="Teacher"
+              value={value}
+              onChangeText={onChange}
+            />
+          )}
         />
         <PickerField
           label="Video"
-          value={draft.sourceName || draft.sourceUri}
+          value={sourceLabel}
           placeholder="Choose video"
           leftAccessory={<FileVideo size={18} color={colors.textSecondary} />}
           onPress={onPickVideo}
         />
-        <BpmDetectionStatus estimate={estimate} isAnalyzing={isAnalyzing} />
-        <LabelledTextInput
-          label="Thumbnail URL"
-          value={draft.thumbnailUri}
-          onChangeText={(thumbnailUri) =>
-            onChangeDraft({ ...draft, thumbnailUri })
-          }
+        {!isAnalyzing && <BpmDetectionStatus estimate={estimate} />}
+        <Controller
+          control={control}
+          name="thumbnailUri"
+          render={({ field: { onChange, value } }) => (
+            <LabelledTextInput
+              label="Thumbnail URL"
+              value={value}
+              onChangeText={onChange}
+            />
+          )}
         />
-        <LabelledTextInput
-          label="BPM"
-          value={draft.bpm}
-          keyboardType="number-pad"
-          onChangeText={(bpm) => onChangeDraft({ ...draft, bpm })}
+        <Controller
+          control={control}
+          name="bpm"
+          render={({ field: { onChange, value } }) => (
+            <LabelledTextInput
+              label="BPM"
+              value={value}
+              keyboardType="number-pad"
+              onChangeText={onChange}
+            />
+          )}
         />
         <Pressable
           accessibilityRole="button"
@@ -135,14 +172,8 @@ export function AddVideoModal({
   );
 }
 
-function BpmDetectionStatus({
-  estimate,
-  isAnalyzing,
-}: {
-  estimate: BpmEstimate | null;
-  isAnalyzing: boolean;
-}) {
-  const label = getBpmStatusLabel(estimate, isAnalyzing);
+function BpmDetectionStatus({ estimate }: { estimate: BpmEstimate | null }) {
+  const label = getBpmStatusLabel(estimate);
   const detail =
     estimate?.source === "detected"
       ? `${Math.round(estimate.confidence * 100)}% confidence`
@@ -170,23 +201,18 @@ function BpmDetectionStatus({
       >
         {label}
       </Text>
-      {detail ? (
-        <Text style={{ color: colors.textSecondary, fontSize: typography.size.xs }}>
+      {detail && (
+        <Text
+          style={{ color: colors.textSecondary, fontSize: typography.size.xs }}
+        >
           {detail}
         </Text>
-      ) : null}
+      )}
     </View>
   );
 }
 
-function getBpmStatusLabel(
-  estimate: BpmEstimate | null,
-  isAnalyzing: boolean,
-) {
-  if (isAnalyzing) {
-    return "Analyzing BPM";
-  }
-
+function getBpmStatusLabel(estimate: BpmEstimate | null) {
   if (!estimate) {
     return "BPM will be detected after choosing a video";
   }
