@@ -10,3 +10,7 @@ Use `conditional && <Component />` style over `conditional ? <Component /> : nul
 
 1. Stick to a consistent design system implemented in @/lib/theme. If there is a need to add new styles, try to see if it would be consistent with the design system, then add an appropriate constant to @/lib/theme.
 2. Reuse existing components as much as possible. If there is a need to create a new component, create a generic, reusable version of it in @/components
+
+## Creating an MR
+
+After the ticket development is done, move the ticket file to plans/archived
