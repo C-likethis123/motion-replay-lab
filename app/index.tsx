@@ -5,6 +5,7 @@ import { Stack } from "expo-router";
 import { createVideoPlayer } from "expo-video";
 import { Plus } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
+import { useForm, useWatch } from "react-hook-form";
 import {
   AddVideoDraft,
   AddVideoModal,
@@ -37,10 +38,21 @@ export default function LibraryScreen() {
   const [query, setQuery] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [onlyBookmarked, setOnlyBookmarked] = useState(false);
-  const [draft, setDraft] = useState(emptyVideo);
   const [bpmEstimate, setBpmEstimate] = useState<BpmEstimate | null>(null);
   const [isEstimatingBpm, setIsEstimatingBpm] = useState(false);
   const bpmRequestRef = useRef(0);
+  const {
+    control,
+    formState: { errors },
+    getValues,
+    handleSubmit,
+    reset,
+    setValue,
+  } = useForm<AddVideoDraft>({
+    defaultValues: emptyVideo,
+  });
+  const sourceName = useWatch({ control, name: "sourceName" });
+  const sourceUri = useWatch({ control, name: "sourceUri" });
 
   const filteredVideos = useMemo(() => {
     return videos.filter((video) => {
@@ -69,17 +81,21 @@ export default function LibraryScreen() {
 
       const asset = result.assets[0];
       const title = titleFromFileName(asset.name);
+      const baseDraft = openSheet ? emptyVideo : getValues();
+      const nextDraft = {
+        ...baseDraft,
+        title: baseDraft.title.trim() ? baseDraft.title : title,
+        sourceUri: asset.uri,
+        sourceName: asset.name,
+      };
 
-      setDraft((current) => {
-        const baseDraft = openSheet ? emptyVideo : current;
-
-        return {
-          ...baseDraft,
-          title: baseDraft.title.trim() ? baseDraft.title : title,
-          sourceUri: asset.uri,
-          sourceName: asset.name,
-        };
-      });
+      if (openSheet) {
+        reset(nextDraft);
+      } else {
+        setValue("title", nextDraft.title, { shouldDirty: true });
+        setValue("sourceUri", nextDraft.sourceUri, { shouldDirty: true });
+        setValue("sourceName", nextDraft.sourceName, { shouldDirty: true });
+      }
 
       if (openSheet) {
         setShowAdd(true);
@@ -94,10 +110,9 @@ export default function LibraryScreen() {
 
       if (bpmRequestRef.current === requestId) {
         setBpmEstimate(estimate);
-        setDraft((current) => ({
-          ...current,
-          bpm: estimate.bpm?.toString() ?? current.bpm,
-        }));
+        if (estimate.bpm) {
+          setValue("bpm", estimate.bpm.toString(), { shouldDirty: true });
+        }
         setIsEstimatingBpm(false);
       }
     } catch {
@@ -108,7 +123,7 @@ export default function LibraryScreen() {
       setIsEstimatingBpm(false);
     }
   }
-  async function saveDraft() {
+  async function saveDraft(draft: AddVideoDraft) {
     if (!draft.title.trim() || !draft.sourceUri.trim() || isEstimatingBpm) {
       return;
     }
@@ -168,14 +183,15 @@ export default function LibraryScreen() {
       </ScrollView>
 
       <AddVideoModal
-        draft={draft}
+        control={control}
+        errors={errors}
         estimate={bpmEstimate}
         isAnalyzing={isEstimatingBpm}
+        sourceLabel={sourceName || sourceUri}
         visible={showAdd}
-        onChangeDraft={setDraft}
         onClose={() => setShowAdd(false)}
         onPickVideo={() => pickVideo()}
-        onSave={saveDraft}
+        onSave={handleSubmit(saveDraft)}
       />
     </>
   );
