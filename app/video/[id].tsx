@@ -1,15 +1,8 @@
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  Switch,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
-import { VideoView, useVideoPlayer } from "expo-video";
+import { Alert, Pressable, ScrollView, Switch, Text, View } from "react-native";
+import * as DocumentPicker from "expo-document-picker";
+import { createVideoPlayer, VideoView, useVideoPlayer } from "expo-video";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -21,12 +14,19 @@ import {
   SkipBack,
   SkipForward,
   Trash2,
-  X,
 } from "lucide-react-native";
+import { useForm, useWatch } from "react-hook-form";
+import { EditVideoDraft, EditVideoModal } from "@/components/edit-video-modal";
 import { IconButton } from "@/components/icon-button";
+import { useBpmDetection } from "@/hooks/bpm/useBpmDetection";
 import { deriveBpmTiming, parseBpmInput } from "@/lib/bpm";
 import { colors, opacity, radii, spacing, typography } from "@/lib/theme";
-import { DanceVideo, PracticeSection, useVideos } from "@/lib/videos";
+import {
+  DanceVideo,
+  PracticeSection,
+  useVideos,
+  VideoThumbnailSource,
+} from "@/lib/videos";
 
 const speeds = [0.5, 0.75, 1, 1.25];
 const fallbackCountSeconds = 60 / 100;
@@ -51,7 +51,19 @@ export default function VideoPracticeScreen() {
   const [mirrored, setMirrored] = useState(false);
   const [activeLoop, setActiveLoop] = useState<PracticeSection | null>(null);
   const [showEdit, setShowEdit] = useState(false);
-  const [draft, setDraft] = useState(() => makeDraft(video));
+  const {
+    control,
+    formState: { errors },
+    getValues,
+    handleSubmit,
+    reset,
+    setValue,
+  } = useForm<EditVideoDraft>({
+    defaultValues: makeDraft(video),
+  });
+  const sourceName = useWatch({ control, name: "sourceName" });
+  const sourceUri = useWatch({ control, name: "sourceUri" });
+  const sourceLabel = sourceName || sourceUri;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -129,7 +141,7 @@ export default function VideoPracticeScreen() {
     player.currentTime = Math.max(0, time);
   }
 
-  function saveEdit() {
+  const saveEdit = handleSubmit((draft) => {
     updateVideo(selectedVideo.id, {
       title: draft.title.trim() || selectedVideo.title,
       style: draft.style.trim() || selectedVideo.style,
@@ -140,6 +152,40 @@ export default function VideoPracticeScreen() {
       sections: parseSections(draft.sections, selectedVideo.sections),
     });
     setShowEdit(false);
+  });
+
+  async function pickEditVideo() {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "video/*",
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      const thumbnailUri = await resolveThumbnail(
+        asset.uri,
+        getValues("thumbnailUri"),
+      );
+
+      setValue("sourceUri", asset.uri, { shouldDirty: true });
+      setValue("sourceName", asset.name, { shouldDirty: true });
+      if (typeof thumbnailUri === "string") {
+        setValue("thumbnailUri", thumbnailUri, { shouldDirty: true });
+      }
+
+      detectBpm(asset.uri);
+    } catch (error) {
+      console.error(error);
+      Alert.alert(
+        "Could not choose video",
+        "Please try selecting the video again.",
+      );
+    }
   }
 
   function removeVideo() {
@@ -158,7 +204,8 @@ export default function VideoPracticeScreen() {
                 icon={Pencil}
                 label="Edit video"
                 onPress={() => {
-                  setDraft(makeDraft(selectedVideo));
+                  reset(makeDraft(selectedVideo));
+                  resetBpmDetection();
                   setShowEdit(true);
                 }}
               />
@@ -353,8 +400,8 @@ export default function VideoPracticeScreen() {
                   style={{
                     color:
                       player.playbackRate === speed
-                      ? colors.primaryOn
-                      : colors.accentText,
+                        ? colors.primaryOn
+                        : colors.accentText,
                     fontSize: typography.size.sm,
                     fontWeight: typography.weight.bold,
                   }}
@@ -440,109 +487,15 @@ export default function VideoPracticeScreen() {
           })}
         </View>
       </ScrollView>
-
-      <Modal
-        animationType="slide"
-        presentationStyle="pageSheet"
+      <EditVideoModal
+        control={control}
+        errors={errors}
+        sourceLabel={sourceLabel}
         visible={showEdit}
-      >
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={{
-            padding: spacing.screen,
-            paddingTop: spacing.screen + insets.top,
-            paddingBottom: spacing.screenBottom + insets.bottom,
-            gap: spacing.xxl,
-            backgroundColor: colors.appBackground,
-          }}
-        >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <Text
-              selectable
-              style={{
-                color: colors.text,
-                fontSize: typography.size.title,
-                fontWeight: typography.weight.bold,
-              }}
-            >
-              Edit video
-            </Text>
-            <IconButton
-              icon={X}
-              label="Close"
-              onPress={() => setShowEdit(false)}
-            />
-          </View>
-          <VideoField
-            label="Title"
-            value={draft.title}
-            onChangeText={(title) => setDraft({ ...draft, title })}
-          />
-          <VideoField
-            label="Style"
-            value={draft.style}
-            onChangeText={(style) => setDraft({ ...draft, style })}
-          />
-          <VideoField
-            label="Teacher"
-            value={draft.teacher}
-            onChangeText={(teacher) => setDraft({ ...draft, teacher })}
-          />
-          <VideoField
-            label="Video URL"
-            value={draft.sourceUri}
-            onChangeText={(sourceUri) => setDraft({ ...draft, sourceUri })}
-          />
-          <VideoField
-            label="Thumbnail URL"
-            value={draft.thumbnailUri}
-            onChangeText={(thumbnailUri) =>
-              setDraft({ ...draft, thumbnailUri })
-            }
-          />
-          <VideoField
-            label="BPM"
-            value={draft.bpm}
-            keyboardType="number-pad"
-            onChangeText={(bpm) => setDraft({ ...draft, bpm })}
-          />
-          <VideoField
-            label="Sections"
-            value={draft.sections}
-            multiline
-            onChangeText={(sections) => setDraft({ ...draft, sections })}
-          />
-          <Pressable
-            accessibilityRole="button"
-            onPress={saveEdit}
-            style={({ pressed }) => ({
-              minHeight: 52,
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: radii.md,
-              borderCurve: "continuous",
-              backgroundColor: colors.primary,
-              opacity: pressed ? opacity.pressedSoft : 1,
-            })}
-          >
-            <Text
-              style={{
-                color: colors.primaryOn,
-                fontSize: typography.size.lg,
-                fontWeight: typography.weight.bold,
-              }}
-            >
-              Save changes
-            </Text>
-          </Pressable>
-        </ScrollView>
-      </Modal>
+        onClose={() => setShowEdit(false)}
+        onPickVideo={pickEditVideo}
+        onSave={saveEdit}
+      />
     </>
   );
 }
@@ -553,6 +506,7 @@ function makeDraft(video?: DanceVideo) {
     style: video?.style ?? "",
     teacher: video?.teacher ?? "",
     sourceUri: video?.sourceUri ?? "",
+    sourceName: video?.sourceUri ?? "",
     thumbnailUri:
       typeof video?.thumbnailUri === "string" ? video.thumbnailUri : "",
     bpm: video?.bpm?.toString() ?? "",
@@ -595,51 +549,24 @@ function formatTime(seconds: number) {
   return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 }
 
-function VideoField({
-  label,
-  value,
-  onChangeText,
-  keyboardType,
-  multiline,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  keyboardType?: "default" | "number-pad";
-  multiline?: boolean;
-}) {
-  return (
-    <View style={{ gap: spacing.sm }}>
-      <Text
-        selectable
-        style={{
-          color: colors.textSecondary,
-          fontSize: typography.size.xs,
-          fontWeight: typography.weight.semibold,
-        }}
-      >
-        {label}
-      </Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        keyboardType={keyboardType}
-        multiline={multiline}
-        autoCapitalize="none"
-        style={{
-          minHeight: multiline ? 124 : 48,
-          paddingHorizontal: spacing.xxl,
-          paddingVertical: multiline ? spacing.xl : 0,
-          borderRadius: radii.sm,
-          borderCurve: "continuous",
-          backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
-          color: colors.text,
-          fontSize: typography.size.lg,
-          textAlignVertical: multiline ? "top" : "center",
-        }}
-      />
-    </View>
-  );
+async function resolveThumbnail(
+  sourceUri: string,
+  thumbnailUri: string,
+): Promise<VideoThumbnailSource> {
+  if (thumbnailUri) {
+    return thumbnailUri;
+  }
+
+  const player = createVideoPlayer({ uri: sourceUri });
+
+  try {
+    const [thumbnail] = await player.generateThumbnailsAsync(0, {
+      maxWidth: 900,
+    });
+    return thumbnail ?? null;
+  } catch {
+    return null;
+  } finally {
+    player.release();
+  }
 }
