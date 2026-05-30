@@ -3,10 +3,8 @@ import { Alert, ScrollView } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import { Stack } from "expo-router";
 import { createVideoPlayer } from "expo-video";
-import { Plus } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { IconButton } from "@/components/icon-button";
 import { LibraryControls } from "@/components/library-controls";
 import { LibraryVideoList } from "@/components/library-video-list";
 import { deriveDetectedBpmTiming, estimateBpm } from "@/lib/bpm";
@@ -17,16 +15,14 @@ export default function LibraryScreen() {
   const insets = useSafeAreaInsets();
   const { videos, addVideo, updateVideo } = useVideos();
   const [query, setQuery] = useState("");
-  const [onlyBookmarked, setOnlyBookmarked] = useState(false);
 
   const filteredVideos = useMemo(() => {
     return videos.filter((video) => {
-      const matchesQuery = `${video.title} ${video.style} ${video.teacher}`
+      return `${video.title} ${video.style} ${video.teacher}`
         .toLowerCase()
         .includes(query.toLowerCase());
-      return matchesQuery && (!onlyBookmarked || video.sections.length > 0);
     });
-  }, [onlyBookmarked, query, videos]);
+  }, [query, videos]);
 
   async function openAdd() {
     try {
@@ -85,28 +81,25 @@ export default function LibraryScreen() {
     <>
       <Stack.Screen
         options={{
-          title: "Dance",
-          headerRight: () => (
-            <IconButton icon={Plus} label="Add video" onPress={openAdd} />
-          ),
+          headerShown: false,
         }}
       />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{
           padding: spacing.screen,
+          paddingTop: spacing.screen + insets.top,
           paddingBottom: spacing.screenBottom + insets.bottom,
           gap: spacing.screenGap,
         }}
       >
         <LibraryControls
-          onlyBookmarked={onlyBookmarked}
           query={query}
           videoCount={filteredVideos.length}
-          onChangeOnlyBookmarked={setOnlyBookmarked}
           onChangeQuery={setQuery}
+          onAddVideo={openAdd}
         />
-        <LibraryVideoList videos={filteredVideos} onAddVideo={openAdd} />
+        <LibraryVideoList videos={filteredVideos} />
       </ScrollView>
     </>
   );
