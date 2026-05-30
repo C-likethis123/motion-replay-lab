@@ -1,6 +1,7 @@
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { FileVideo, X } from "lucide-react-native";
 import { Control, Controller, FieldErrors } from "react-hook-form";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BpmEstimate } from "@/lib/bpm";
 import { IconButton } from "@/components/icon-button";
 import { LabelledTextInput } from "@/components/labelled-text-input";
@@ -40,6 +41,8 @@ export function AddVideoModal({
   onPickVideo,
   onSave,
 }: AddVideoModalProps) {
+  const insets = useSafeAreaInsets();
+
   return (
     <Modal
       animationType="slide"
@@ -50,6 +53,8 @@ export function AddVideoModal({
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{
           padding: spacing.screen,
+          paddingTop: spacing.screen + insets.top,
+          paddingBottom: spacing.screenBottom + insets.bottom,
           gap: spacing.xxl,
           backgroundColor: colors.appBackground,
         }}

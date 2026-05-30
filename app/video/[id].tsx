@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { VideoView, useVideoPlayer } from "expo-video";
 import * as Haptics from "expo-haptics";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   FlipHorizontal,
   Pause,
@@ -31,6 +32,7 @@ const speeds = [0.5, 0.75, 1, 1.25];
 const fallbackCountSeconds = 60 / 100;
 
 export default function VideoPracticeScreen() {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { videos, updateVideo, deleteVideo } = useVideos();
@@ -74,6 +76,7 @@ export default function VideoPracticeScreen() {
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={{
             padding: spacing.screen,
+            paddingBottom: spacing.screenBottom + insets.bottom,
             gap: spacing.xxxl,
           }}
         >
@@ -173,7 +176,7 @@ export default function VideoPracticeScreen() {
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{
           padding: spacing.screen,
-          paddingBottom: spacing.screenBottomTall,
+          paddingBottom: spacing.screenBottomTall + insets.bottom,
           gap: spacing.screenGap,
         }}
       >
@@ -447,6 +450,8 @@ export default function VideoPracticeScreen() {
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={{
             padding: spacing.screen,
+            paddingTop: spacing.screen + insets.top,
+            paddingBottom: spacing.screenBottom + insets.bottom,
             gap: spacing.xxl,
             backgroundColor: colors.appBackground,
           }}
