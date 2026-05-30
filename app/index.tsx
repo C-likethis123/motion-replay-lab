@@ -166,7 +166,7 @@ export default function LibraryScreen() {
           onChangeOnlyBookmarked={setOnlyBookmarked}
           onChangeQuery={setQuery}
         />
-        <LibraryVideoList videos={filteredVideos} />
+        <LibraryVideoList videos={filteredVideos} onAddVideo={openAdd} />
       </ScrollView>
 
       <AddVideoModal
