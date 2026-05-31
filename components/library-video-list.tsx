@@ -1,6 +1,6 @@
 import { View } from "react-native";
 import { Link } from "expo-router";
-import { FileVideo } from "lucide-react-native";
+import { FileVideo, Search } from "lucide-react-native";
 import { Card } from "@/components/card";
 import { EmptyState } from "@/components/empty-state";
 import { Pill } from "@/components/pill";
@@ -11,10 +11,20 @@ import { pluralise } from "@/utils/i18n";
 
 type LibraryVideoListProps = {
   videos: DanceVideo[];
+  query?: string;
 };
 
-export function LibraryVideoList({ videos }: LibraryVideoListProps) {
+export function LibraryVideoList({ videos, query }: LibraryVideoListProps) {
   if (videos.length === 0) {
+    if (query) {
+      return (
+        <EmptyState
+          icon={Search}
+          title="No results found"
+          description={`No videos match "${query}". Try a different search term.`}
+        />
+      );
+    }
     return (
       <EmptyState
         icon={FileVideo}
