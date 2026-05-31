@@ -48,6 +48,8 @@ export default function LibraryScreen() {
         thumbnailUri,
         bpm: null,
         countSeconds: null,
+        firstBeatTimestamp: null,
+        firstEightCountTimestamp: null,
         bpmSource: "unavailable",
         bpmDetectionStatus: "detecting",
         sections: [],

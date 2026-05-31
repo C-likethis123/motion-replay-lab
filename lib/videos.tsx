@@ -30,6 +30,8 @@ export type DanceVideo = {
   thumbnailUri: VideoThumbnailSource;
   bpm: number | null;
   countSeconds: number | null;
+  firstBeatTimestamp: number | null;
+  firstEightCountTimestamp: number | null;
   bpmSource: BpmSource;
   bpmConfidence?: number;
   bpmDetectionStatus?: BpmDetectionStatus;

@@ -1,10 +1,18 @@
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { FileVideo, X } from "lucide-react-native";
-import { Control, Controller, FieldErrors } from "react-hook-form";
+import {
+  Control,
+  Controller,
+  FieldErrors,
+  UseFormSetValue,
+} from "react-hook-form";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { IconButton } from "@/components/icon-button";
 import { LabelledTextInput } from "@/components/labelled-text-input";
 import { PickerField } from "@/components/picker-field";
+import { TapToBpmControl } from "@/components/tap-to-bpm-control";
+import { deriveBpmTiming } from "@/lib/bpm";
+import { BpmSource } from "@/lib/videos";
 import { colors, opacity, radii, spacing, typography } from "@/lib/theme";
 
 export type EditVideoDraft = {
@@ -14,7 +22,13 @@ export type EditVideoDraft = {
   sourceUri: string;
   sourceName: string;
   thumbnailUri: string;
-  bpm: string;
+  bpm: number | null;
+  countSeconds: number | null;
+  firstBeatTimestamp: number | null;
+  firstEightCountTimestamp: number | null;
+  bpmSource: BpmSource;
+  bpmConfidence?: number;
+  bpmDetectionError?: string;
   sections: string;
 };
 
@@ -22,6 +36,7 @@ type EditVideoModalProps = {
   control: Control<EditVideoDraft>;
   errors: FieldErrors<EditVideoDraft>;
   sourceLabel: string;
+  setValue: UseFormSetValue<EditVideoDraft>;
   visible: boolean;
   onClose: () => void;
   onPickVideo: () => void;
@@ -32,6 +47,7 @@ export function EditVideoModal({
   control,
   errors,
   sourceLabel,
+  setValue,
   visible,
   onClose,
   onPickVideo,
@@ -130,12 +146,35 @@ export function EditVideoModal({
         <Controller
           control={control}
           name="bpm"
-          render={({ field: { onChange, value } }) => (
-            <LabelledTextInput
-              label="BPM"
-              value={value}
-              keyboardType="number-pad"
-              onChangeText={onChange}
+          render={({ field: { onChange: onBpmChange } }) => (
+            <Controller
+              control={control}
+              name="bpmSource"
+              render={({ field: { onChange: onSourceChange } }) => (
+                <TapToBpmControl
+                  initialBpm={control._formValues.bpm ?? 120}
+                  onBpmChange={(bpm) => {
+                    const timing = deriveBpmTiming(bpm);
+                    onBpmChange(timing.bpm);
+                    setValue("countSeconds", timing.countSeconds, {
+                      shouldDirty: true,
+                    });
+                    setValue("firstBeatTimestamp", null, {
+                      shouldDirty: true,
+                    });
+                    setValue("firstEightCountTimestamp", null, {
+                      shouldDirty: true,
+                    });
+                    setValue("bpmConfidence", undefined, {
+                      shouldDirty: true,
+                    });
+                    setValue("bpmDetectionError", undefined, {
+                      shouldDirty: true,
+                    });
+                    onSourceChange(timing.bpmSource);
+                  }}
+                />
+              )}
             />
           )}
         />

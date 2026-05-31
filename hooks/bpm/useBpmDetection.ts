@@ -1,5 +1,5 @@
 import { EditVideoDraft } from "@/components/edit-video-modal";
-import { BpmEstimate, estimateBpm } from "@/lib/bpm";
+import { BpmEstimate, deriveDetectedBpmTiming, estimateBpm } from "@/lib/bpm";
 import { useState, useRef, useCallback } from "react";
 import { UseFormSetValue } from "react-hook-form";
 
@@ -30,7 +30,24 @@ export function useBpmDetection(setValue: UseFormSetValue<EditVideoDraft>) {
 
         setEstimate(nextEstimate);
         if (nextEstimate.bpm) {
-          setValue("bpm", nextEstimate.bpm.toString(), { shouldDirty: true });
+          const timing = deriveDetectedBpmTiming(nextEstimate);
+          setValue("bpm", timing.bpm, { shouldDirty: true });
+          setValue("countSeconds", timing.countSeconds, { shouldDirty: true });
+          setValue("firstBeatTimestamp", timing.firstBeatTimestamp, {
+            shouldDirty: true,
+          });
+          setValue("firstEightCountTimestamp", timing.firstEightCountTimestamp, {
+            shouldDirty: true,
+          });
+          setValue("bpmSource", timing.bpmSource, { shouldDirty: true });
+          setValue("bpmConfidence", timing.bpmConfidence, {
+            shouldDirty: true,
+          });
+          setValue("bpmDetectionError", undefined, { shouldDirty: true });
+        } else {
+          setValue("bpmDetectionError", nextEstimate.error, {
+            shouldDirty: true,
+          });
         }
       } finally {
         if (requestRef.current === requestId) {
