@@ -16,6 +16,7 @@ export type PracticeSection = {
 };
 
 export type BpmSource = "detected" | "tap" | "unavailable";
+export type BpmDetectionStatus = "idle" | "detecting";
 export type VideoThumbnailSource = string | VideoThumbnail | null;
 
 export type DanceVideo = {
@@ -29,6 +30,8 @@ export type DanceVideo = {
   countSeconds: number | null;
   bpmSource: BpmSource;
   bpmConfidence?: number;
+  bpmDetectionStatus?: BpmDetectionStatus;
+  bpmDetectionError?: string;
   sections: PracticeSection[];
 };
 
@@ -36,7 +39,7 @@ type VideoInput = Omit<DanceVideo, "id">;
 
 type VideosContextValue = {
   videos: DanceVideo[];
-  addVideo: (video: VideoInput) => void;
+  addVideo: (video: VideoInput) => string;
   updateVideo: (id: string, video: Partial<VideoInput>) => void;
   deleteVideo: (id: string) => void;
 };
@@ -47,14 +50,18 @@ export function VideosProvider({ children }: { children: ReactNode }) {
   const [videos, setVideos] = useState<DanceVideo[]>([]);
 
   const addVideo = useCallback((video: VideoInput) => {
+    const id = `${Date.now()}`;
+
     setVideos((current) => [
       {
         ...video,
-        id: `${Date.now()}`,
+        id,
         sections: video.sections.length > 0 ? video.sections : [],
       },
       ...current,
     ]);
+
+    return id;
   }, []);
 
   const updateVideo = useCallback((id: string, video: Partial<VideoInput>) => {

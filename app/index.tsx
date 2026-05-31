@@ -58,11 +58,16 @@ export default function LibraryScreen() {
           updateVideo(videoId, {
             ...deriveDetectedBpmTiming(bpmEstimate),
             bpmDetectionStatus: "idle",
+            bpmDetectionError: bpmEstimate.error,
           });
         })
         .catch((error) => {
           console.error(error);
-          updateVideo(videoId, { bpmDetectionStatus: "idle" });
+          updateVideo(videoId, {
+            bpmDetectionStatus: "idle",
+            bpmDetectionError:
+              error instanceof Error ? error.message : String(error),
+          });
         });
 
       if (process.env.EXPO_OS === "ios") {

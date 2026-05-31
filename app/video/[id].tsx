@@ -7,6 +7,7 @@ import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   FlipHorizontal,
+  AlertTriangle,
   Pause,
   Pencil,
   Play,
@@ -19,7 +20,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { EditVideoDraft, EditVideoModal } from "@/components/edit-video-modal";
 import { IconButton } from "@/components/icon-button";
 import { useBpmDetection } from "@/hooks/bpm/useBpmDetection";
-import { deriveBpmTiming, parseBpmInput } from "@/lib/bpm";
+import { deriveBpmTiming, parseNumberInput } from "@/lib/bpm";
 import { colors, opacity, radii, spacing, typography } from "@/lib/theme";
 import {
   DanceVideo,
@@ -64,6 +65,7 @@ export default function VideoPracticeScreen() {
   const sourceName = useWatch({ control, name: "sourceName" });
   const sourceUri = useWatch({ control, name: "sourceUri" });
   const sourceLabel = sourceName || sourceUri;
+  const { detectBpm, reset: resetBpmDetection } = useBpmDetection(setValue);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -148,7 +150,7 @@ export default function VideoPracticeScreen() {
       teacher: draft.teacher.trim() || selectedVideo.teacher,
       sourceUri: draft.sourceUri.trim() || selectedVideo.sourceUri,
       thumbnailUri: draft.thumbnailUri.trim() || selectedVideo.thumbnailUri,
-      ...deriveBpmTiming(parseBpmInput(draft.bpm)),
+      ...deriveBpmTiming(parseNumberInput(draft.bpm)),
       sections: parseSections(draft.sections, selectedVideo.sections),
     });
     setShowEdit(false);
@@ -331,6 +333,50 @@ export default function VideoPracticeScreen() {
             onPress={() => jumpCounts(8)}
           />
         </View>
+
+        {video.bpmDetectionError && (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-start",
+              padding: spacing.xxl,
+              gap: spacing.lg,
+              borderRadius: radii.lg,
+              borderCurve: "continuous",
+              backgroundColor: colors.dangerSoft,
+              borderWidth: 1,
+              borderColor: colors.dangerBorder,
+            }}
+          >
+            <AlertTriangle
+              size={20}
+              color={colors.danger}
+              style={{ marginTop: 1 }}
+            />
+            <View style={{ flex: 1, gap: spacing.xs }}>
+              <Text
+                selectable
+                style={{
+                  color: colors.danger,
+                  fontSize: typography.size.lg,
+                  fontWeight: typography.weight.bold,
+                }}
+              >
+                Audio processing failed
+              </Text>
+              <Text
+                selectable
+                style={{
+                  color: colors.text,
+                  fontSize: typography.size.sm,
+                  lineHeight: 20,
+                }}
+              >
+                {video.bpmDetectionError}
+              </Text>
+            </View>
+          </View>
+        )}
 
         <View
           style={{

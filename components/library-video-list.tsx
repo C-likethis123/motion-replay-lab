@@ -1,6 +1,6 @@
 import { View } from "react-native";
 import { Link } from "expo-router";
-import { FileVideo, Search } from "lucide-react-native";
+import { FileVideo, Search, AlertTriangle } from "lucide-react-native";
 import { Card } from "@/components/card";
 import { EmptyState } from "@/components/empty-state";
 import { Pill } from "@/components/pill";
@@ -52,6 +52,13 @@ export function LibraryVideoList({ videos, query }: LibraryVideoListProps) {
               </View>
               <Card.Footer>
                 <Pill label={formatBpm(video)} />
+                {video.bpmDetectionError && (
+                  <Pill
+                    label="Audio issue"
+                    icon={<AlertTriangle size={12} color={colors.danger} />}
+                    tone="danger"
+                  />
+                )}
                 <Pill label={`${pluralise(video.sections.length, "loop")}`} />
               </Card.Footer>
             </Card.Content>

@@ -2,7 +2,6 @@ import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { FileVideo, X } from "lucide-react-native";
 import { Control, Controller, FieldErrors } from "react-hook-form";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { BpmEstimate } from "@/lib/bpm";
 import { IconButton } from "@/components/icon-button";
 import { LabelledTextInput } from "@/components/labelled-text-input";
 import { PickerField } from "@/components/picker-field";
@@ -154,7 +153,6 @@ export function EditVideoModal({
         />
         <Pressable
           accessibilityRole="button"
-          disabled={isAnalyzing}
           onPress={onSave}
           style={({ pressed }) => ({
             minHeight: 52,
