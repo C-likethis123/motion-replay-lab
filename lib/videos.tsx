@@ -1,9 +1,11 @@
 import * as React from "react";
 import type { VideoThumbnail } from "expo-video";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   createContext,
   ReactNode,
   useCallback,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -42,12 +44,40 @@ type VideosContextValue = {
   addVideo: (video: VideoInput) => string;
   updateVideo: (id: string, video: Partial<VideoInput>) => void;
   deleteVideo: (id: string) => void;
+  isLoaded: boolean;
 };
 
 const VideosContext = createContext<VideosContextValue | null>(null);
 
+const STORAGE_KEY = "videos";
+
 export function VideosProvider({ children }: { children: ReactNode }) {
   const [videos, setVideos] = useState<DanceVideo[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    async function loadVideos() {
+      try {
+        const savedVideos = await AsyncStorage.getItem(STORAGE_KEY);
+        if (savedVideos) {
+          setVideos(JSON.parse(savedVideos));
+        }
+      } catch (error) {
+        console.error("Failed to load videos", error);
+      } finally {
+        setIsLoaded(true);
+      }
+    }
+    loadVideos();
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded) {
+      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(videos)).catch(
+        console.error,
+      );
+    }
+  }, [videos, isLoaded]);
 
   const addVideo = useCallback((video: VideoInput) => {
     const id = `${Date.now()}`;
@@ -75,8 +105,8 @@ export function VideosProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ videos, addVideo, updateVideo, deleteVideo }),
-    [addVideo, deleteVideo, updateVideo, videos],
+    () => ({ videos, addVideo, updateVideo, deleteVideo, isLoaded }),
+    [addVideo, deleteVideo, updateVideo, videos, isLoaded],
   );
 
   return (
