@@ -99,7 +99,7 @@ export default function LibraryScreen() {
           onChangeQuery={setQuery}
           onAddVideo={openAdd}
         />
-        <LibraryVideoList videos={filteredVideos} />
+        <LibraryVideoList videos={filteredVideos} query={query} />
       </ScrollView>
     </>
   );
