@@ -1,5 +1,8 @@
 # Ticket: Full Screen Video View
 
+> [!NOTE]
+> The scope of this ticket is for the mobile app (i.e. the folder in 'mobile').
+
 Goal:
 - Add a full-screen practice video view so dancers can focus on playback while retaining the core controls needed during rehearsal.
 

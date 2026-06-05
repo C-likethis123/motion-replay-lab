@@ -1,4 +1,12 @@
+# About app
+
+This repository aims to create a specialised video player for dance videos.
+There are two main folders:
+- mobile: stores all the components to create an Expo React native app.
+- website: the web variant of mobile. This is still under active development and will be the focus of current development efforts.
+
 # Repository Notes
+
 
 - Keep `react` and its renderer package on the same version. When changing or installing dependencies, ensure `react` and `react-dom` use matching version ranges in `package.json` and resolve to the same version in `package-lock.json`.
 

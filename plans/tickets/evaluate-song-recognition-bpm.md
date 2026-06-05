@@ -1,5 +1,8 @@
 # Ticket: Explore BPM detection via Song Recognition
 
+> [!NOTE]
+> The scope of this ticket is for the mobile app (i.e. the folder in 'mobile').
+
 ## Context
 Our current BPM detection relies on signal processing directly on audio extracted from videos. This approach is prone to errors with background noise or complex audio. We want to investigate if identifying the song first and then looking up its BPM from a database would yield higher accuracy.
 

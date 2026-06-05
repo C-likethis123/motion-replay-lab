@@ -1,5 +1,8 @@
 # Ticket: Bug - Video persistence not loading
 
+> [!NOTE]
+> The scope of this ticket is for the mobile app (i.e. the folder in 'mobile').
+
 Goal:
 - Investigate and resolve the issue where video data is not correctly loaded into the application state upon restart, despite evidence that data exists in the cache (`AsyncStorage`).
 

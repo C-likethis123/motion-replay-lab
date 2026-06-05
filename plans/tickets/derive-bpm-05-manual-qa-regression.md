@@ -1,5 +1,8 @@
 # Ticket: Derive BPM - Manual QA / Regression
 
+> [!NOTE]
+> The scope of this ticket is for the mobile app (i.e. the folder in 'mobile').
+
 References:
 - Plan: `plans/derive-bpm-from-video-audio.md`
 

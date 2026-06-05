@@ -1,5 +1,8 @@
 # Ticket: Playlist Advanced Playback Controls
 
+> [!NOTE]
+> The scope of this ticket is for the mobile app (i.e. the folder in 'mobile').
+
 Goal:
 - Introduce intuitive, advanced controls to the video playback experience to allow for faster and more precise navigation during practice.
 

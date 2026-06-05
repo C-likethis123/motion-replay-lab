@@ -1,5 +1,8 @@
 # Ticket: Add Video Labels Functionality
 
+> [!NOTE]
+> The scope of this ticket is for the mobile app (i.e. the folder in 'mobile').
+
 References:
 - N/A
 

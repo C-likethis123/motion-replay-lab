@@ -1,5 +1,8 @@
 # Ticket: Bug - Unable to add multiple videos consecutively
 
+> [!NOTE]
+> The scope of this ticket is for the mobile app (i.e. the folder in 'mobile').
+
 Goal:
 - Investigate and resolve the issue where adding a video fails or behaves unexpectedly after a previous video has been added successfully.
 
