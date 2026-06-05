@@ -1,0 +1,13 @@
+.tap-to-bpm-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tap-button {
+  padding: 10px;
+  background-color: var(--color-primary);
+  color: var(--color-surface);
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}

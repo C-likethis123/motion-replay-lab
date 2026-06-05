@@ -1,0 +1,55 @@
+.video-detail-container {
+  padding: var(--spacing-screen);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.video-container {
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background-color: var(--color-video-chrome);
+  border: 1px solid var(--color-video-chrome-border);
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.video-controls {
+  margin-top: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.playback-controls {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-xl);
+}
+
+.speed-controls {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.speed-button {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  border: none;
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent-text);
+  cursor: pointer;
+}
+
+.speed-button.active {
+  background-color: var(--color-primary);
+  color: var(--color-primary-on);
+}
