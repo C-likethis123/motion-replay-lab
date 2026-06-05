@@ -1,5 +1,8 @@
 # Ticket: Evaluate and Migrate to `realtime-bpm-analyzer`
 
+> [!NOTE]
+> The scope of this ticket is for the mobile app (i.e. the folder in 'mobile').
+
 ## Context
 Our current BPM detection relies on the `music-tempo` library. To improve detection accuracy, we researched modern alternatives.
 

@@ -1,5 +1,8 @@
 # Ticket: Remove legacy music-tempo BPM detection
 
+> [!NOTE]
+> The scope of this ticket is for the mobile app (i.e. the folder in 'mobile').
+
 Goal:
 - Remove the legacy `music-tempo` BPM detection implementation once the new BPM analyzer (e.g., `realtime-bpm-analyzer`) is confirmed as the stable, preferred solution.
 

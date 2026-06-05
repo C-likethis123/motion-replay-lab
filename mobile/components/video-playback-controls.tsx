@@ -1,0 +1,310 @@
+import { useEffect, useState } from "react";
+import { Pressable, Switch, Text, View } from "react-native";
+import * as Haptics from "expo-haptics";
+import type { VideoPlayer } from "expo-video";
+import {
+  Flag,
+  FlipHorizontal,
+  Pause,
+  Play,
+  SkipBack,
+  SkipForward,
+} from "lucide-react-native";
+import { IconButton } from "@/components/icon-button";
+import { TapToBpmControl } from "@/components/tap-to-bpm-control";
+import { formatBpm } from "@/lib/bpm";
+import { colors, opacity, radii, spacing, typography } from "@/lib/theme";
+import type { DanceVideo, PracticeSection } from "@/lib/videos";
+
+const speeds = [0.5, 0.75, 1, 1.25];
+
+type VideoPlaybackControlsProps = {
+  player: VideoPlayer;
+  video: DanceVideo;
+  mirrored: boolean;
+  onMirroredChange: (mirrored: boolean) => void;
+  activeLoop?: PracticeSection | null;
+  showTapBpm?: boolean;
+  onBpmChange?: (bpm: number) => void;
+  onSetEightCountStart?: (time: number) => void;
+};
+
+export function VideoPlaybackControls({
+  player,
+  video,
+  mirrored,
+  onMirroredChange,
+  activeLoop = null,
+  showTapBpm = false,
+  onBpmChange,
+  onSetEightCountStart,
+}: VideoPlaybackControlsProps) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(player.playbackRate);
+  const countSeconds = video.countSeconds;
+  const gridStart = video.firstEightCountTimestamp ?? video.firstBeatTimestamp;
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(player.currentTime || 0);
+      setDuration(player.duration || 0);
+      setIsPlaying(player.playing);
+      setPlaybackRate(player.playbackRate);
+
+      if (activeLoop && player.currentTime >= activeLoop.end) {
+        player.currentTime = activeLoop.start;
+        player.play();
+      }
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, [activeLoop, player]);
+
+  function hapticTap() {
+    if (process.env.EXPO_OS === "ios") {
+      Haptics.selectionAsync();
+    }
+  }
+
+  function togglePlay() {
+    hapticTap();
+    if (player.playing) {
+      player.pause();
+    } else {
+      player.play();
+    }
+    setIsPlaying(!player.playing);
+  }
+
+  function jump(seconds: number) {
+    hapticTap();
+    player.seekBy(seconds);
+  }
+
+  function jumpCounts(counts: number) {
+    if (!countSeconds) {
+      return;
+    }
+
+    if (gridStart == null) {
+      jump(countSeconds * counts);
+      return;
+    }
+
+    hapticTap();
+    const currentBeat = Math.round((currentTime - gridStart) / countSeconds);
+    const targetBeat = currentBeat + counts;
+    // eslint-disable-next-line react-hooks/immutability
+    player.currentTime = Math.max(0, gridStart + targetBeat * countSeconds);
+  }
+
+  function setSpeed(speed: number) {
+    // eslint-disable-next-line react-hooks/immutability
+    player.playbackRate = speed;
+    setPlaybackRate(speed);
+    hapticTap();
+  }
+
+  return (
+    <View style={{ gap: spacing.lg }}>
+      <View style={{ gap: spacing.lg }}>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: spacing.xl,
+          }}
+        >
+          <Text
+            selectable
+            style={{
+              color: colors.text,
+              fontSize: typography.size.xl,
+              fontWeight: typography.weight.bold,
+            }}
+          >
+            {formatTime(currentTime)}
+          </Text>
+          <Text
+            selectable
+            style={{
+              color: colors.accent,
+              fontSize: typography.size.sm,
+              fontWeight: typography.weight.bold,
+            }}
+          >
+            {formatBpm(video)}
+          </Text>
+          <Text
+            selectable
+            style={{
+              color: colors.textMuted,
+              fontSize: typography.size.xl,
+              fontVariant: ["tabular-nums"],
+            }}
+          >
+            {formatTime(duration)}
+          </Text>
+        </View>
+        <View
+          style={{
+            height: 8,
+            borderRadius: radii.xs,
+            backgroundColor: colors.progressTrack,
+            overflow: "hidden",
+          }}
+        >
+          <View
+            style={{
+              width: `${duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0}%`,
+              height: "100%",
+              backgroundColor: colors.accent,
+            }}
+          />
+        </View>
+      </View>
+
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "center",
+          gap: spacing.xl,
+        }}
+      >
+        <IconButton
+          icon={SkipBack}
+          label="Back one count"
+          onPress={() => jumpCounts(-1)}
+          disabled={!countSeconds}
+        />
+        <IconButton
+          icon={SkipBack}
+          label="Back eight count"
+          onPress={() => jumpCounts(-8)}
+          disabled={!countSeconds}
+        />
+        <IconButton
+          icon={isPlaying ? Pause : Play}
+          label={isPlaying ? "Pause" : "Play"}
+          tone="primary"
+          onPress={togglePlay}
+          style={{ minWidth: 64 }}
+        />
+        <IconButton
+          icon={SkipForward}
+          label="Forward one count"
+          onPress={() => jumpCounts(1)}
+          disabled={!countSeconds}
+        />
+        <IconButton
+          icon={SkipForward}
+          label="Forward eight count"
+          onPress={() => jumpCounts(8)}
+          disabled={!countSeconds}
+        />
+      </View>
+
+      {countSeconds && onSetEightCountStart && (
+        <View style={{ alignItems: "center" }}>
+          <IconButton
+            icon={Flag}
+            label="Set current time as count one"
+            onPress={() => onSetEightCountStart(currentTime)}
+          />
+        </View>
+      )}
+
+      {showTapBpm && onBpmChange && (
+        <TapToBpmControl
+          initialBpm={video.bpm ?? 120}
+          onBpmChange={onBpmChange}
+        />
+      )}
+
+      <View
+        style={{
+          padding: spacing.xxl,
+          gap: spacing.xxl,
+          borderRadius: radii.lg,
+          borderCurve: "continuous",
+          backgroundColor: colors.surface,
+          borderWidth: 1,
+          borderColor: colors.borderStrong,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.lg,
+            }}
+          >
+            <FlipHorizontal size={18} color={colors.accent} />
+            <Text
+              selectable
+              style={{
+                color: colors.text,
+                fontSize: typography.size.lg,
+                fontWeight: typography.weight.bold,
+              }}
+            >
+              Mirror
+            </Text>
+          </View>
+          <Switch value={mirrored} onValueChange={onMirroredChange} />
+        </View>
+
+        <View style={{ flexDirection: "row", gap: spacing.md, flexWrap: "wrap" }}>
+          {speeds.map((speed) => (
+            <Pressable
+              key={speed}
+              accessibilityRole="button"
+              onPress={() => setSpeed(speed)}
+              style={({ pressed }) => ({
+                minHeight: 36,
+                paddingHorizontal: spacing.xxl,
+                justifyContent: "center",
+                borderRadius: radii.xl,
+                backgroundColor:
+                  playbackRate === speed ? colors.primary : colors.accentSoft,
+                opacity: pressed ? opacity.pressed : 1,
+              })}
+            >
+              <Text
+                selectable
+                style={{
+                  color:
+                    playbackRate === speed ? colors.primaryOn : colors.accentText,
+                  fontSize: typography.size.sm,
+                  fontWeight: typography.weight.bold,
+                }}
+              >
+                {speed}x
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+export function formatTime(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return "0:00";
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+}
