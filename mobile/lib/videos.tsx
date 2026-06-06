@@ -24,8 +24,6 @@ export type VideoThumbnailSource = string | VideoThumbnail | null;
 export type DanceVideo = {
   id: string;
   title: string;
-  style: string;
-  teacher: string;
   sourceUri: string;
   thumbnailUri: VideoThumbnailSource;
   bpm: number | null;
@@ -37,6 +35,7 @@ export type DanceVideo = {
   bpmDetectionStatus?: BpmDetectionStatus;
   bpmDetectionError?: string;
   sections: PracticeSection[];
+  labels: string[];
 };
 
 type VideoInput = Omit<DanceVideo, "id">;
@@ -61,6 +60,7 @@ export function VideosProvider({ children }: { children: ReactNode }) {
     async function loadVideos() {
       try {
         const savedVideos = await AsyncStorage.getItem(STORAGE_KEY);
+        console.log("Loaded videos from storage:", savedVideos);
         if (savedVideos) {
           setVideos(JSON.parse(savedVideos));
         }
@@ -97,8 +97,13 @@ export function VideosProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateVideo = useCallback((id: string, video: Partial<VideoInput>) => {
+    console.log("Updating video:", id, "with:", video);
     setVideos((current) =>
-      current.map((item) => (item.id === id ? { ...item, ...video } : item)),
+      current.map((item) => {
+        const updated = (item.id === id ? { ...item, ...video } : item);
+        console.log("New video state for", id, ":", updated);
+        return updated;
+      }),
     );
   }, []);
 

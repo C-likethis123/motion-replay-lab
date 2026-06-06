@@ -16,9 +16,8 @@ export default function VideoDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     title: video?.title || "",
-    style: video?.style || "",
-    teacher: video?.teacher || "",
     sections: video?.sections.map(s => `${s.label}, ${s.start}, ${s.end}`).join("\n") || "",
+    labels: video?.labels?.join(", ") || "",
   });
 
   if (!video) {
@@ -40,9 +39,8 @@ export default function VideoDetail() {
     
     await updateVideo(video.id, {
       title: editForm.title,
-      style: editForm.style,
-      teacher: editForm.teacher,
-      sections
+      sections,
+      labels: editForm.labels.split(",").map(l => l.trim()).filter(l => l !== "")
     });
     setIsEditing(false);
   };
@@ -70,24 +68,33 @@ export default function VideoDetail() {
         onMirroredChange={setMirrored}
       />
 
-      <div style={{ marginTop: "var(--spacing-xl)" }}>
-        <button onClick={() => setIsEditing(!isEditing)}>{isEditing ? "Cancel" : "Edit Video"}</button>
-        {isEditing && (
-          <div style={{ marginTop: "var(--spacing-md)", padding: "var(--spacing-md)", border: "1px solid #ccc" }}>
-            <input value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} placeholder="Title" /><br/>
-            <input value={editForm.style} onChange={e => setEditForm({...editForm, style: e.target.value})} placeholder="Style" /><br/>
-            <input value={editForm.teacher} onChange={e => setEditForm({...editForm, teacher: e.target.value})} placeholder="Teacher" /><br/>
-            <textarea value={editForm.sections} onChange={e => setEditForm({...editForm, sections: e.target.value})} placeholder="Sections (Label, Start, End)" />
-            <button onClick={handleSave}>Save</button>
-          </div>
-        )}
-      </div>
+      {video.labels && video.labels.length > 0 && (
+        <div style={{ marginTop: "var(--spacing-md)", display: "flex", gap: "var(--spacing-sm)" }}>
+          {video.labels.map((label) => (
+            <span key={label} className="pill">
+              {label}
+            </span>
+          ))}
+        </div>
+      )}
 
-      <div style={{ marginTop: "var(--spacing-xl)" }}>
-        <button onClick={handleDelete} style={{ color: "var(--color-danger)" }}>
+      <div className="actions">
+        <button onClick={() => setIsEditing(!isEditing)}>
+          {isEditing ? "Cancel" : "Edit Video"}
+        </button>
+        <button onClick={handleDelete} className="danger">
           Delete Video
         </button>
       </div>
+      
+      {isEditing && (
+        <div className="edit-form">
+          <input value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} placeholder="Title" />
+          <input value={editForm.labels} onChange={e => setEditForm({...editForm, labels: e.target.value})} placeholder="Labels (comma separated)" />
+          <textarea value={editForm.sections} onChange={e => setEditForm({...editForm, sections: e.target.value})} placeholder="Sections (Label, Start, End)" />
+          <button onClick={handleSave}>Save</button>
+        </div>
+      )}
     </div>
   );
 }

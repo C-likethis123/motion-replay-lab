@@ -18,7 +18,7 @@ export default function LibraryScreen() {
 
   const filteredVideos = useMemo(() => {
     return videos.filter((video) => {
-      return `${video.title} ${video.style} ${video.teacher}`
+      return `${video.title}`
         .toLowerCase()
         .includes(query.toLowerCase());
     });
@@ -42,8 +42,6 @@ export default function LibraryScreen() {
 
       const videoId = addVideo({
         title,
-        style: "Practice",
-        teacher: "Unassigned",
         sourceUri: asset.uri,
         thumbnailUri,
         bpm: null,
@@ -53,6 +51,7 @@ export default function LibraryScreen() {
         bpmSource: "unavailable",
         bpmDetectionStatus: "detecting",
         sections: [],
+        labels: [],
       });
 
       estimateBpm(asset.uri)

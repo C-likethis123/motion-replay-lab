@@ -13,8 +13,6 @@ import { db, type VideoMetadata, type PracticeSection, type BpmSource, type BpmD
 export type DanceVideo = {
   id: string;
   title: string;
-  style: string;
-  teacher: string;
   sourceUri: string;
   thumbnailUri: VideoThumbnailSource;
   bpm: number | null;
@@ -26,6 +24,7 @@ export type DanceVideo = {
   bpmDetectionStatus?: BpmDetectionStatus;
   bpmDetectionError?: string;
   sections: PracticeSection[];
+  labels: string[];
 };
 
 type VideoInput = Omit<DanceVideo, "id" | "sourceUri">;

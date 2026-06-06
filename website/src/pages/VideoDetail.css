@@ -2,6 +2,9 @@
   padding: var(--spacing-screen);
   max-width: 800px;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-screen-gap);
 }
 
 .video-container {
@@ -15,41 +18,64 @@
   justify-content: center;
 }
 
+.pill {
+  padding: var(--spacing-xs) var(--spacing-md);
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent-text);
+  border-radius: 9999px;
+  font-size: var(--font-size-sm);
+  display: inline-block;
+}
+
 video {
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
 
-.video-controls {
-  margin-top: var(--spacing-xl);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
+/* Button & Form Styling */
+button {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: opacity var(--opacity-pressed);
 }
 
-.playback-controls {
-  display: flex;
-  justify-content: center;
-  gap: var(--spacing-xl);
+button:hover {
+  opacity: var(--opacity-pressed-soft);
 }
 
-.speed-controls {
+button.danger {
+  color: var(--color-danger);
+  border-color: var(--color-danger-border);
+  background-color: var(--color-danger-soft);
+}
+
+input, textarea {
+  width: 100%;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  margin-bottom: var(--spacing-md);
+  font-family: inherit;
+}
+
+.edit-form {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface);
+}
+
+.actions {
   display: flex;
   gap: var(--spacing-md);
-  margin-top: var(--spacing-md);
+  margin-top: var(--spacing-xl);
 }
 
-.speed-button {
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--radius-md);
-  border: none;
-  background-color: var(--color-accent-soft);
-  color: var(--color-accent-text);
-  cursor: pointer;
-}
-
-.speed-button.active {
-  background-color: var(--color-primary);
-  color: var(--color-primary-on);
-}

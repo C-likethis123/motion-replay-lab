@@ -17,8 +17,6 @@ import { colors, opacity, radii, spacing, typography } from "@/lib/theme";
 
 export type EditVideoDraft = {
   title: string;
-  style: string;
-  teacher: string;
   sourceUri: string;
   sourceName: string;
   thumbnailUri: string;
@@ -30,6 +28,7 @@ export type EditVideoDraft = {
   bpmConfidence?: number;
   bpmDetectionError?: string;
   sections: string;
+  labels: string;
 };
 
 type EditVideoModalProps = {
@@ -103,28 +102,7 @@ export function EditVideoModal({
             />
           )}
         />
-        <Controller
-          control={control}
-          name="style"
-          render={({ field: { onChange, value } }) => (
-            <LabelledTextInput
-              label="Style (optional)"
-              value={value}
-              onChangeText={onChange}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="teacher"
-          render={({ field: { onChange, value } }) => (
-            <LabelledTextInput
-              label="Teacher"
-              value={value}
-              onChangeText={onChange}
-            />
-          )}
-        />
+
         <PickerField
           label="Video"
           value={sourceLabel}
@@ -186,6 +164,17 @@ export function EditVideoModal({
               label="Sections"
               value={value}
               multiline
+              onChangeText={onChange}
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="labels"
+          render={({ field: { onChange, value } }) => (
+            <LabelledTextInput
+              label="Labels (comma separated)"
+              value={value}
               onChangeText={onChange}
             />
           )}

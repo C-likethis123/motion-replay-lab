@@ -46,9 +46,7 @@ export function LibraryVideoList({ videos, query }: LibraryVideoListProps) {
             <Card.Content>
               <View style={{ gap: spacing.xs }}>
                 <Card.Title>{video.title}</Card.Title>
-                <Card.Description>
-                  {video.style} - {video.teacher}
-                </Card.Description>
+
               </View>
               <Card.Footer>
                 <Pill label={formatBpm(video)} />
@@ -60,6 +58,9 @@ export function LibraryVideoList({ videos, query }: LibraryVideoListProps) {
                   />
                 )}
                 <Pill label={`${pluralise(video.sections.length, "loop")}`} />
+                {video.labels.map((label) => (
+                  <Pill key={label} label={label} />
+                ))}
               </Card.Footer>
             </Card.Content>
           </Card>

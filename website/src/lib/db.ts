@@ -14,8 +14,6 @@ export type VideoThumbnailSource = string | null;
 export interface VideoMetadata {
   id: string;
   title: string;
-  style: string;
-  teacher: string;
   thumbnailUri: VideoThumbnailSource;
   bpm: number | null;
   countSeconds: number | null;
@@ -26,6 +24,7 @@ export interface VideoMetadata {
   bpmDetectionStatus?: BpmDetectionStatus;
   bpmDetectionError?: string;
   sections: PracticeSection[];
+  labels: string[];
 }
 
 export interface VideoBlobRecord {
@@ -41,6 +40,10 @@ export class DanceReplayDB extends Dexie {
     super("DanceReplayDB");
     this.version(1).stores({
       videos: "id, title, style, teacher, bpm, bpmSource",
+      videoBlobs: "id",
+    });
+    this.version(2).stores({
+      videos: "id, title, bpm, bpmSource",
       videoBlobs: "id",
     });
   }

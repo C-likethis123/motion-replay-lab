@@ -19,6 +19,7 @@ import {
 import { useForm, useWatch } from "react-hook-form";
 import { EditVideoDraft, EditVideoModal } from "@/components/edit-video-modal";
 import { IconButton } from "@/components/icon-button";
+import { Pill } from "@/components/pill";
 import {
   formatTime,
   VideoPlaybackControls,
@@ -88,8 +89,6 @@ export default function VideoPracticeScreen() {
   const saveEdit = handleSubmit((draft) => {
     updateVideo(selectedVideo.id, {
       title: draft.title.trim() || selectedVideo.title,
-      style: draft.style.trim() || selectedVideo.style,
-      teacher: draft.teacher.trim() || selectedVideo.teacher,
       sourceUri: draft.sourceUri.trim() || selectedVideo.sourceUri,
       thumbnailUri: draft.thumbnailUri.trim() || selectedVideo.thumbnailUri,
       bpm: draft.bpm,
@@ -100,6 +99,10 @@ export default function VideoPracticeScreen() {
       bpmConfidence: draft.bpmConfidence,
       bpmDetectionError: draft.bpmDetectionError,
       sections: parseSections(draft.sections, selectedVideo.sections),
+      labels: draft.labels
+        .split(",")
+        .map((label) => label.trim())
+        .filter((label) => label !== ""),
     });
     setShowEdit(false);
   });
@@ -261,6 +264,14 @@ function FocusedVideoDetailContent({
         video={video}
       />
 
+      {video.labels.length > 0 && (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+          {video.labels.map((label) => (
+            <Pill key={label} label={label} />
+          ))}
+        </View>
+      )}
+
       {video.bpmDetectionError && (
         <View
           style={{
@@ -385,8 +396,6 @@ function FocusedVideoDetailContent({
 function makeDraft(video?: DanceVideo) {
   return {
     title: video?.title ?? "",
-    style: video?.style ?? "",
-    teacher: video?.teacher ?? "",
     sourceUri: video?.sourceUri ?? "",
     sourceName: video?.sourceUri ?? "",
     thumbnailUri:
@@ -402,6 +411,7 @@ function makeDraft(video?: DanceVideo) {
       video?.sections
         .map((section) => `${section.label}, ${section.start}, ${section.end}`)
         .join("\n") ?? "",
+    labels: video?.labels.join(", ") ?? "",
   };
 }
 

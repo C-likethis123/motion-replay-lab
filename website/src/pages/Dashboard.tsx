@@ -59,7 +59,7 @@ export default function Dashboard() {
 
   const filteredVideos = useMemo(() => {
     return videos.filter((video) => {
-      return `${video.title} ${video.style} ${video.teacher}`
+      return `${video.title} ${video.labels?.join(" ") ?? ""}`
         .toLowerCase()
         .includes(query.toLowerCase());
     });
@@ -89,6 +89,7 @@ export default function Dashboard() {
         bpmSource: "unavailable",
         bpmDetectionStatus: "detecting",
         sections: [],
+        labels: [],
       }, file);
 
       // Trigger BPM analysis in the background
@@ -149,7 +150,7 @@ export default function Dashboard() {
               type="text"
               className="search-input"
               style={{ paddingLeft: "36px" }}
-              placeholder="Search title, style, or teacher..."
+              placeholder="Search title or labels..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -216,12 +217,19 @@ export default function Dashboard() {
                 
                 <div className="video-info">
                   <h3 className="video-title">{video.title}</h3>
-                  <div className="video-meta">
-                    Style: {video.style} &bull; Teacher: {video.teacher}
-                  </div>
+
                   <div className={`video-bpm-badge ${bpmBadgeClass}`}>
                     {formatBpm(video)}
                   </div>
+                  {video.labels && video.labels.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--spacing-xs)", marginTop: "var(--spacing-xs)" }}>
+                      {video.labels.map((label) => (
+                        <span key={label} className="pill" style={{ padding: "2px var(--spacing-sm)", fontSize: "var(--font-size-xs)" }}>
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="video-actions">
