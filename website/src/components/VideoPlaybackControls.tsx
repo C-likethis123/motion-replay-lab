@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { Flag, FlipHorizontal, Pause, Play, SkipBack, SkipForward } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Flag, FlipHorizontal, Pause, Play } from "lucide-react";
 import { TapToBpmControl } from "./TapToBpmControl";
 import { formatTime } from "../lib/bpm";
-import type { DanceVideo, PracticeSection } from "../lib/videos";
+import type { DanceVideo } from "../lib/videos";
+import type { PracticeSection } from "../lib/db";
 import "./VideoPlaybackControls.css";
 
 type VideoPlaybackControlsProps = {

@@ -1,4 +1,14 @@
-import { Essentia, EssentiaWASM } from "essentia.js";
+import { Essentia } from "essentia.js";
+
+// Mock globals for Emscripten glue code
+(self as any).document = {
+  currentScript: { src: "" },
+  title: ""
+};
+(self as any).window = self;
+
+// @ts-ignore
+import EssentiaWASM from "essentia.js/dist/essentia-wasm.web.js";
 
 export type AudioTimingCandidate = {
   label: "half-time" | "detected" | "double-time";
@@ -74,10 +84,33 @@ function clampConfidence(value: number) {
   return Math.max(0, Math.min(1, Math.round(value * 100) / 100));
 }
 
-self.onmessage = (event) => {
+let essentia: Essentia | null = null;
+console.log("[Worker] Initializing Essentia...");
+
+// Configuration to handle worker environment and WASM path
+const Module = {
+  ENVIRONMENT_IS_WEB: false,
+  ENVIRONMENT_IS_WORKER: true,
+  locateFile: (path: string) => `/${path}`,
+};
+
+// The imported module is a factory function that returns the ready promise
+EssentiaWASM(Module).then((wasmModule: any) => {
+  console.log("[Worker] Essentia WASM ready.");
+  essentia = new Essentia(wasmModule);
+});
+
+self.onmessage = async (event) => {
+  console.log("[Worker] Received message:", event.data);
   const { samples, minBpm, maxBpm, timestampOffsetSeconds } = event.data;
   
-  const essentia = new Essentia(EssentiaWASM);
+  // Wait for initialization
+  while (!essentia) {
+    console.log("[Worker] Waiting for initialization...");
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  
+  console.log("[Worker] Starting analysis...");
   const signal = essentia.arrayToVector(samples);
   
   try {
@@ -122,7 +155,7 @@ self.onmessage = (event) => {
       if (sig && typeof sig.delete === "function") {
         sig.delete();
       }
-      essentia.delete();
+      // essentia.delete(); // No delete method on the Essentia instance based on d.ts
     } catch (e) {
       console.error("Error during cleanup in worker:", e);
     }

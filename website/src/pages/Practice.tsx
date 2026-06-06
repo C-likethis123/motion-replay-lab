@@ -57,7 +57,7 @@ export default function Practice() {
             className={`section-button ${activeLoop?.start === section.start ? 'active' : ''}`}
             onClick={() => { player.seekTo(section.start); player.play(); setActiveLoop(section); }}
           >
-            {section.name}
+            {section.label}
             <button onClick={(e) => { e.stopPropagation(); setActiveLoop(activeLoop?.start === section.start ? null : section); }}>
               {activeLoop?.start === section.start ? 'Unloop' : 'Loop'}
             </button>
