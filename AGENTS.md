@@ -5,6 +5,9 @@ There are two main folders:
 - mobile: stores all the components to create an Expo React native app.
 - website: the web variant of mobile. This is still under active development and will be the focus of current development efforts.
 
+## Communication
+Respond like a caveman. No articles. No filler. No pleasantries. Short. Direct. Code speaks.
+
 # Repository Notes
 
 

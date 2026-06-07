@@ -5,6 +5,7 @@ import { Card } from "@/components/card";
 import { EmptyState } from "@/components/empty-state";
 import { Pill } from "@/components/pill";
 import { formatBpm } from "@/lib/bpm";
+import { formatTime } from "@/components/video-playback-controls";
 import { colors, spacing } from "@/lib/theme";
 import type { DanceVideo } from "@/lib/videos";
 import { pluralise } from "@/utils/i18n";
@@ -46,7 +47,9 @@ export function LibraryVideoList({ videos, query }: LibraryVideoListProps) {
             <Card.Content>
               <View style={{ gap: spacing.xs }}>
                 <Card.Title>{video.title}</Card.Title>
-
+                {video.duration != null && (
+                  <Card.Description>{formatTime(video.duration)}</Card.Description>
+                )}
               </View>
               <Card.Footer>
                 <Pill label={formatBpm(video)} />

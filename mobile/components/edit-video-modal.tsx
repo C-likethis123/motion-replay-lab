@@ -5,6 +5,7 @@ import {
   Controller,
   FieldErrors,
   UseFormSetValue,
+  useWatch,
 } from "react-hook-form";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { IconButton } from "@/components/icon-button";
@@ -130,7 +131,7 @@ export function EditVideoModal({
               name="bpmSource"
               render={({ field: { onChange: onSourceChange } }) => (
                 <TapToBpmControl
-                  initialBpm={control._formValues.bpm ?? 120}
+                  initialBpm={useWatch({ control, name: "bpm" }) ?? 120}
                   onBpmChange={(bpm) => {
                     const timing = deriveBpmTiming(bpm);
                     onBpmChange(timing.bpm);

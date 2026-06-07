@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Pressable, Switch, Text, View } from "react-native";
+import Slider from "@react-native-community/slider";
 import * as Haptics from "expo-haptics";
 import type { VideoPlayer } from "expo-video";
 import {
@@ -24,8 +25,6 @@ type VideoPlaybackControlsProps = {
   mirrored: boolean;
   onMirroredChange: (mirrored: boolean) => void;
   activeLoop?: PracticeSection | null;
-  showTapBpm?: boolean;
-  onBpmChange?: (bpm: number) => void;
   onSetEightCountStart?: (time: number) => void;
 };
 
@@ -35,13 +34,11 @@ export function VideoPlaybackControls({
   mirrored,
   onMirroredChange,
   activeLoop = null,
-  showTapBpm = false,
-  onBpmChange,
   onSetEightCountStart,
 }: VideoPlaybackControlsProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(player.playing);
+  const [currentTime, setCurrentTime] = useState(player.currentTime);
+  const [duration, setDuration] = useState(player.duration);
   const [playbackRate, setPlaybackRate] = useState(player.playbackRate);
   const countSeconds = video.countSeconds;
   const gridStart = video.firstEightCountTimestamp ?? video.firstBeatTimestamp;
@@ -149,22 +146,16 @@ export function VideoPlaybackControls({
             {formatTime(duration)}
           </Text>
         </View>
-        <View
-          style={{
-            height: 8,
-            borderRadius: radii.xs,
-            backgroundColor: colors.progressTrack,
-            overflow: "hidden",
-          }}
-        >
-          <View
-            style={{
-              width: `${duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0}%`,
-              height: "100%",
-              backgroundColor: colors.accent,
-            }}
-          />
-        </View>
+        <Slider
+          minimumValue={0}
+          maximumValue={duration || 1}
+          value={currentTime}
+          onSlidingComplete={(value) => (player.currentTime = value)}
+          minimumTrackTintColor={colors.accent}
+          maximumTrackTintColor={colors.progressTrack}
+          thumbTintColor={colors.accent}
+          style={{ height: 40, marginHorizontal: -spacing.md }}
+        />
       </View>
 
       <View
@@ -217,12 +208,7 @@ export function VideoPlaybackControls({
         </View>
       )}
 
-      {showTapBpm && onBpmChange && (
-        <TapToBpmControl
-          initialBpm={video.bpm ?? 120}
-          onBpmChange={onBpmChange}
-        />
-      )}
+
 
       <View
         style={{

@@ -36,6 +36,7 @@ export type DanceVideo = {
   bpmDetectionError?: string;
   sections: PracticeSection[];
   labels: string[];
+  duration?: number;
 };
 
 type VideoInput = Omit<DanceVideo, "id">;

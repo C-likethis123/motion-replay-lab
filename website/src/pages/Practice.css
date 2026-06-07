@@ -1,12 +1,35 @@
-.practice-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 1rem;
+.practice-page {
+  padding: var(--spacing-md) var(--spacing-screen);
 }
 
-.sections {
+.practice-header {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
 }
+
+.practice-player-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.practice-player-container video {
+  max-width: 100%;
+  max-height: 60vh;
+}
+
+.sections-container {
+  margin-top: var(--spacing-md);
+}
+
+.section-button {
+  padding: 0.5rem;
+  text-align: left;
+  display: block;
+  margin-bottom: 0.5rem;
+  width: 100%;
+}
+
+

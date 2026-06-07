@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Search, Plus, Play, Edit2, Trash2 } from "lucide-react";
+import { Search, Plus, Play, Trash2 } from "lucide-react";
 import { useVideos } from "../lib/videos";
 import { estimateBpm, deriveDetectedBpmTiming, formatBpm } from "../lib/bpm";
 import "./Dashboard.css";
@@ -236,11 +236,6 @@ export default function Dashboard() {
                   <Link to={`/practice/${video.id}`} className="action-btn" title="Practice">
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}>
                       <Play size={14} /> Practice
-                    </div>
-                  </Link>
-                  <Link to={`/video/${video.id}`} className="action-btn" title="Edit Detail">
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}>
-                      <Edit2 size={14} /> Edit
                     </div>
                   </Link>
                   <button 
