@@ -27,9 +27,9 @@ export function VideoPlaybackControls({
   onBpmChange,
   onSetEightCountStart,
 }: VideoPlaybackControlsProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(player.isPlaying);
+  const [currentTime, setCurrentTime] = useState(player.currentTime);
+  const [duration, setDuration] = useState(player.duration);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -62,12 +62,14 @@ export function VideoPlaybackControls({
           <span className="bpm-display">{video.bpm ? `${video.bpm} BPM` : ""}</span>
           <span>{formatTime(duration)}</span>
         </div>
-        <div className="progress-bar">
-          <div
-            className="progress-fill"
-            style={{ width: `${duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0}%` }}
-          />
-        </div>
+        <input
+          type="range"
+          className="progress-slider"
+          min={0}
+          max={player.duration || 1}
+          value={player.currentTime}
+          onChange={(e) => player.seekTo(parseFloat(e.target.value))}
+        />
       </div>
 
       <div className="controls-buttons">
