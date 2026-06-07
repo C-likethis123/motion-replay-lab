@@ -27,16 +27,10 @@ export function VideoPlaybackControls({
   onBpmChange,
   onSetEightCountStart,
 }: VideoPlaybackControlsProps) {
-  const [isPlaying, setIsPlaying] = useState(player.isPlaying);
-  const [currentTime, setCurrentTime] = useState(player.currentTime);
-  const [duration, setDuration] = useState(player.duration);
+  const { currentTime, isPlaying, duration } = player;
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTime(player.currentTime || 0);
-      setDuration(player.duration || 0);
-      setIsPlaying(player.isPlaying);
-
       if (activeLoop && player.currentTime >= activeLoop.end) {
         player.seekTo(activeLoop.start);
         player.play();
@@ -58,9 +52,9 @@ export function VideoPlaybackControls({
     <div className="playback-controls">
       <div className="timeline-container">
         <div className="time-display">
-          <span>{formatTime(currentTime)}</span>
+          <span>{formatTime(player.currentTime)}</span>
           <span className="bpm-display">{video.bpm ? `${video.bpm} BPM` : ""}</span>
-          <span>{formatTime(duration)}</span>
+          <span>{formatTime(player.duration)}</span>
         </div>
         <input
           type="range"
@@ -75,8 +69,8 @@ export function VideoPlaybackControls({
       <div className="controls-buttons">
         <button onClick={() => jumpCounts(-8)} disabled={!video.countSeconds}>« 8</button>
         <button onClick={() => jumpCounts(-1)} disabled={!video.countSeconds}>« 1</button>
-        <button onClick={() => isPlaying ? player.pause() : player.play()}>
-          {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+        <button onClick={() => player.isPlaying ? player.pause() : player.play()}>
+          {player.isPlaying ? <Pause size={20} /> : <Play size={20} />}
         </button>
         <button onClick={() => jumpCounts(1)} disabled={!video.countSeconds}>1 »</button>
         <button onClick={() => jumpCounts(8)} disabled={!video.countSeconds}>8 »</button>

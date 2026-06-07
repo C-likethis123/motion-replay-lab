@@ -25,6 +25,7 @@ export type DanceVideo = {
   bpmDetectionError?: string;
   sections: PracticeSection[];
   labels: string[];
+  mirrored: boolean;
 };
 
 type VideoInput = Omit<DanceVideo, "id" | "sourceUri">;

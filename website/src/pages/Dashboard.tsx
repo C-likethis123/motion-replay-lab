@@ -90,6 +90,7 @@ export default function Dashboard() {
         bpmDetectionStatus: "detecting",
         sections: [],
         labels: [],
+        mirrored: false,
       }, file);
 
       // Trigger BPM analysis in the background

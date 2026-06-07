@@ -3,6 +3,7 @@ import { useRef, useState, useEffect } from "react";
 import { useVideos } from "../lib/videos";
 import { useWebVideoPlayer } from "../hooks/useWebVideoPlayer";
 import { VideoPlaybackControls } from "../components/VideoPlaybackControls";
+import { TagsInput } from "../components/TagsInput";
 import "./Practice.css";
 
 export default function Practice() {
@@ -12,14 +13,20 @@ export default function Practice() {
   const video = videos.find((item) => item.id === id);
   const videoRef = useRef<HTMLVideoElement>(null);
   const player = useWebVideoPlayer(videoRef);
-  const [mirrored, setMirrored] = useState(false);
+  const [mirrored, setMirrored] = useState(video?.mirrored ?? false);
   const [activeLoop, setActiveLoop] = useState<any | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     title: video?.title || "",
     sections: video?.sections.map(s => `${s.label}, ${s.start}, ${s.end}`).join("\n") || "",
-    labels: video?.labels?.join(", ") || "",
+    labels: video?.labels || [],
   });
+
+  useEffect(() => {
+    if (video) {
+      setMirrored(video.mirrored);
+    }
+  }, [video]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -27,7 +34,12 @@ export default function Practice() {
       const countSeconds = video.countSeconds || 1;
       switch (e.key) {
         case " ": e.preventDefault(); player.isPlaying ? player.pause() : player.play(); break;
-        case "m": case "M": setMirrored(!mirrored); break;
+        case "m": case "M": {
+          const newMirrored = !mirrored;
+          setMirrored(newMirrored);
+          updateVideo(video.id, { mirrored: newMirrored });
+          break;
+        }
         case "ArrowLeft": player.seekBy(e.shiftKey ? -8 * countSeconds : -1 * countSeconds); break;
         case "ArrowRight": player.seekBy(e.shiftKey ? 8 * countSeconds : 1 * countSeconds); break;
         case "l": case "L": setActiveLoop(activeLoop ? null : video?.sections[0] || null); break;
@@ -35,7 +47,11 @@ export default function Practice() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [player, mirrored, activeLoop, video]);
+  }, [player, mirrored, activeLoop, video, updateVideo]);
+
+  // ... (handleSave logic)
+
+  // ... (return render with VideoPlaybackControls update)
 
   if (!video) return <div>Video not found</div>;
 
@@ -55,7 +71,7 @@ export default function Practice() {
     await updateVideo(video.id, {
       title: editForm.title,
       sections,
-      labels: editForm.labels.split(",").map(l => l.trim()).filter(l => l !== "")
+      labels: editForm.labels
     });
     setIsEditing(false);
   };
@@ -63,23 +79,32 @@ export default function Practice() {
   return (
     <div className="practice-page">
       <div className="practice-header">
-        <h2>{video.title}</h2>
+        <div>
+          <h2>{video.title}</h2>
+          {video.labels && video.labels.length > 0 && (
+            <div style={{ display: 'flex', gap: 'var(--spacing-xs)', marginTop: 'var(--spacing-sm)' }}>
+              {video.labels.map(label => (
+                <span key={label} className="tag" style={{ padding: '2px var(--spacing-sm)', fontSize: 'var(--font-size-xs)' }}>{label}</span>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="actions">
-            <button onClick={() => setIsEditing(!isEditing)}>
+            <button className="btn btn-secondary" onClick={() => setIsEditing(!isEditing)}>
               {isEditing ? "Cancel" : "Edit"}
             </button>
-            <button onClick={handleDelete} className="danger">
+            <button className="btn btn-danger" onClick={handleDelete}>
               Delete
             </button>
         </div>
       </div>
 
       {isEditing && (
-        <div className="edit-form" style={{ marginTop: '1rem', padding: '1rem', border: '1px solid #ccc' }}>
+        <div className="edit-form">
           <input value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} placeholder="Title" />
-          <input value={editForm.labels} onChange={e => setEditForm({...editForm, labels: e.target.value})} placeholder="Labels (comma separated)" />
+          <TagsInput value={editForm.labels} onChange={tags => setEditForm({...editForm, labels: tags})} />
           <textarea value={editForm.sections} onChange={e => setEditForm({...editForm, sections: e.target.value})} placeholder="Sections (Label, Start, End)" />
-          <button onClick={handleSave}>Save</button>
+          <button className="btn btn-primary" onClick={handleSave}>Save</button>
         </div>
       )}
 
@@ -91,9 +116,9 @@ export default function Practice() {
         player={player}
         video={video}
         mirrored={mirrored}
-        onMirroredChange={setMirrored}
+        onMirroredChange={(m) => { setMirrored(m); updateVideo(video.id, { mirrored: m }); }}
         activeLoop={activeLoop}
-        showTapBpm
+        showTapBpm={isEditing}
         onBpmChange={(bpm) => updateVideo(video.id, { bpm })}
         onSetEightCountStart={(time) => updateVideo(video.id, { firstEightCountTimestamp: time })}
       />
