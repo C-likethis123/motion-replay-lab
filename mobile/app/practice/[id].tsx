@@ -137,12 +137,7 @@ export default function PracticeScreen() {
         <VideoPlaybackControls
           mirrored={mirrored}
           onMirroredChange={setMirrored}
-          onSetEightCountStart={(time) =>
-            updateVideo(video.id, {
-              firstEightCountTimestamp: time,
-              firstBeatTimestamp: video.firstBeatTimestamp ?? time,
-            })
-          }
+
           player={player}
           video={video}
         />

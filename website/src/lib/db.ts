@@ -4,7 +4,8 @@ export type PracticeSection = {
   id: string;
   label: string;
   start: number;
-  end: number;
+  end?: number;
+  note?: string;
 };
 
 export type BpmSource = "detected" | "tap" | "unavailable";
@@ -46,6 +47,15 @@ export class DanceReplayDB extends Dexie {
     this.version(2).stores({
       videos: "id, title, bpm, bpmSource",
       videoBlobs: "id",
+    });
+    this.version(3).stores({
+      videos: "id, title, bpm, bpmSource",
+      videoBlobs: "id",
+    }).upgrade(async (tx) => {
+      await tx.table("videos").toCollection().modify((video) => {
+        delete video.style;
+        delete video.teacher;
+      });
     });
   }
 }

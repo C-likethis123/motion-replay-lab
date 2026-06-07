@@ -2,7 +2,7 @@ import { useMemo, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Search, Plus, Play, Trash2 } from "lucide-react";
 import { useVideos } from "../lib/videos";
-import { estimateBpm, deriveDetectedBpmTiming, formatBpm } from "../lib/bpm";
+import { estimateBpm, deriveDetectedBpmTiming } from "../lib/bpm";
 import "./Dashboard.css";
 
 function titleFromFileName(name: string) {
@@ -199,12 +199,6 @@ export default function Dashboard() {
       {isLoaded && filteredVideos.length > 0 && (
         <div className="video-grid">
           {filteredVideos.map((video) => {
-            const bpmBadgeClass = 
-              video.bpmDetectionStatus === "detecting"
-                ? "bpm-detecting"
-                : video.bpm
-                ? "bpm-detected"
-                : "bpm-unavailable";
 
             return (
               <div key={video.id} className="video-card">
@@ -219,9 +213,7 @@ export default function Dashboard() {
                 <div className="video-info">
                   <h3 className="video-title">{video.title}</h3>
 
-                  <div className={`video-bpm-badge ${bpmBadgeClass}`}>
-                    {formatBpm(video)}
-                  </div>
+
                   {video.labels && video.labels.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--spacing-xs)", marginTop: "var(--spacing-xs)" }}>
                       {video.labels.map((label) => (

@@ -1,0 +1,16 @@
+.timeline-markers-container {
+  position: absolute;
+  top: -4px; /* Move container up to allow markers to stick out */
+  left: 0;
+  width: 100%;
+  height: 14px; /* Taller to accommodate the height */
+  pointer-events: none;
+}
+
+.timeline-marker {
+  position: absolute;
+  top: 0;
+  pointer-events: auto;
+  cursor: pointer;
+  transform: translateX(-50%);
+}

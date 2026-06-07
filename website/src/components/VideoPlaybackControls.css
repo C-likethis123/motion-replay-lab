@@ -39,20 +39,35 @@
   cursor: pointer;
 }
 
-.controls-buttons {
+.bottom-controls {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background-color: var(--color-background);
+  border-radius: var(--radius-md);
+}
+
+.mirror-speed-group {
+  grid-column: 1;
   display: flex;
-  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.controls-group {
+  grid-column: 2;
+  display: flex;
   align-items: center;
   gap: var(--spacing-sm);
 }
 
-.mirror-speed-container {
+.additional-controls {
+  grid-column: 3;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-sm);
-  background-color: var(--color-background);
-  border-radius: var(--radius-md);
+  justify-content: flex-end;
 }
 
 .mirror-toggle {
@@ -63,8 +78,11 @@
 
 .speed-controls {
   display: flex;
+  align-items: center;
   gap: var(--spacing-xs);
 }
+
+
 
 .speed-button {
   padding: var(--spacing-xs) var(--spacing-sm);

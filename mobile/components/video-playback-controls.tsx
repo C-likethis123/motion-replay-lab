@@ -10,37 +10,27 @@ import {
   Play,
   SkipBack,
   SkipForward,
-} from "lucide-react-native";
 import { IconButton } from "@/components/icon-button";
+import { TimelineMarkers } from "@/components/timeline-markers";
 import { TapToBpmControl } from "@/components/tap-to-bpm-control";
-import { formatBpm } from "@/lib/bpm";
-import { colors, opacity, radii, spacing, typography } from "@/lib/theme";
-import type { DanceVideo, PracticeSection } from "@/lib/videos";
-
-const speeds = [0.5, 0.75, 1, 1.25];
-
-type VideoPlaybackControlsProps = {
-  player: VideoPlayer;
-  video: DanceVideo;
-  mirrored: boolean;
-  onMirroredChange: (mirrored: boolean) => void;
-  activeLoop?: PracticeSection | null;
-  onSetEightCountStart?: (time: number) => void;
-};
+// ... existing imports
 
 export function VideoPlaybackControls({
   player,
   video,
   mirrored,
   onMirroredChange,
-  activeLoop = null,
-  onSetEightCountStart,
+
+
 }: VideoPlaybackControlsProps) {
   const [isPlaying, setIsPlaying] = useState(player.playing);
   const [currentTime, setCurrentTime] = useState(player.currentTime);
   const [duration, setDuration] = useState(player.duration);
   const [playbackRate, setPlaybackRate] = useState(player.playbackRate);
+  const [sliderWidth, setSliderWidth] = useState(0);
   const countSeconds = video.countSeconds;
+// ...
+
   const gridStart = video.firstEightCountTimestamp ?? video.firstBeatTimestamp;
 
   useEffect(() => {
@@ -50,14 +40,11 @@ export function VideoPlaybackControls({
       setIsPlaying(player.playing);
       setPlaybackRate(player.playbackRate);
 
-      if (activeLoop && player.currentTime >= activeLoop.end) {
-        player.currentTime = activeLoop.start;
-        player.play();
-      }
+
     }, 250);
 
     return () => clearInterval(interval);
-  }, [activeLoop, player]);
+  }, [player]);
 
   function hapticTap() {
     if (process.env.EXPO_OS === "ios") {
@@ -146,16 +133,21 @@ export function VideoPlaybackControls({
             {formatTime(duration)}
           </Text>
         </View>
-        <Slider
-          minimumValue={0}
-          maximumValue={duration || 1}
-          value={currentTime}
-          onSlidingComplete={(value) => (player.currentTime = value)}
-          minimumTrackTintColor={colors.accent}
-          maximumTrackTintColor={colors.progressTrack}
-          thumbTintColor={colors.accent}
-          style={{ height: 40, marginHorizontal: -spacing.md }}
-        />
+        <View 
+          onLayout={(e) => setSliderWidth(e.nativeEvent.layout.width)}
+          style={{ position: 'relative' }}>
+          <TimelineMarkers sections={video.sections} duration={duration} onSeek={(time) => (player.currentTime = time)} sliderWidth={sliderWidth} />
+          <Slider
+            minimumValue={0}
+            maximumValue={duration || 1}
+            value={currentTime}
+            onSlidingComplete={(value) => (player.currentTime = value)}
+            minimumTrackTintColor={colors.accent}
+            maximumTrackTintColor={colors.progressTrack}
+            thumbTintColor={colors.accent}
+            style={{ height: 40, marginHorizontal: -spacing.md }}
+          />
+        </View>
       </View>
 
       <View
@@ -198,15 +190,7 @@ export function VideoPlaybackControls({
         />
       </View>
 
-      {countSeconds && onSetEightCountStart && (
-        <View style={{ alignItems: "center" }}>
-          <IconButton
-            icon={Flag}
-            label="Set current time as count one"
-            onPress={() => onSetEightCountStart(currentTime)}
-          />
-        </View>
-      )}
+
 
 
 

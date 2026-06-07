@@ -1,0 +1,32 @@
+.section-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.section-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.section-row {
+  display: flex;
+  gap: var(--spacing-xs);
+  align-items: center;
+}
+
+.section-label {
+  flex: 2;
+}
+
+.time-inputs {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex: 2;
+}
+
+.time-inputs input {
+  width: 60px;
+}

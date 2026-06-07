@@ -5,16 +5,18 @@ import { formatTime } from "../lib/bpm";
 import type { DanceVideo } from "../lib/videos";
 import type { PracticeSection } from "../lib/db";
 import "./VideoPlaybackControls.css";
+import { TimelineMarkers } from "./TimelineMarkers";
 
 type VideoPlaybackControlsProps = {
   player: any;
   video: DanceVideo;
   mirrored: boolean;
   onMirroredChange: (mirrored: boolean) => void;
-  activeLoop?: PracticeSection | null;
+
   showTapBpm?: boolean;
   onBpmChange?: (bpm: number) => void;
-  onSetEightCountStart?: (time: number) => void;
+  onAddBookmark: (time: number) => void;
+
 };
 
 export function VideoPlaybackControls({
@@ -22,23 +24,13 @@ export function VideoPlaybackControls({
   video,
   mirrored,
   onMirroredChange,
-  activeLoop = null,
   showTapBpm = false,
   onBpmChange,
-  onSetEightCountStart,
+  onAddBookmark,
 }: VideoPlaybackControlsProps) {
   const { currentTime, isPlaying, duration } = player;
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (activeLoop && player.currentTime >= activeLoop.end) {
-        player.seekTo(activeLoop.start);
-        player.play();
-      }
-    }, 250);
 
-    return () => clearInterval(interval);
-  }, [activeLoop, player]);
 
   function jumpCounts(counts: number) {
     if (!video.countSeconds) return;
@@ -50,7 +42,8 @@ export function VideoPlaybackControls({
 
   return (
     <div className="playback-controls">
-      <div className="timeline-container">
+      <div className="timeline-container" style={{ position: 'relative' }}>
+        <TimelineMarkers sections={video.sections} duration={player.duration} onSeek={(time) => player.seekTo(time)} />
         <div className="time-display">
           <span>{formatTime(player.currentTime)}</span>
           <span className="bpm-display">{video.bpm ? `${video.bpm} BPM` : ""}</span>
@@ -66,48 +59,45 @@ export function VideoPlaybackControls({
         />
       </div>
 
-      <div className="controls-buttons">
-        <button onClick={() => jumpCounts(-8)} disabled={!video.countSeconds}>« 8</button>
-        <button onClick={() => jumpCounts(-1)} disabled={!video.countSeconds}>« 1</button>
-        <button onClick={() => player.isPlaying ? player.pause() : player.play()}>
-          {player.isPlaying ? <Pause size={20} /> : <Play size={20} />}
-        </button>
-        <button onClick={() => jumpCounts(1)} disabled={!video.countSeconds}>1 »</button>
-        <button onClick={() => jumpCounts(8)} disabled={!video.countSeconds}>8 »</button>
-      </div>
-      
-      <div className="additional-controls">
-        {video.countSeconds && onSetEightCountStart && (
-          <button className="secondary-button" onClick={() => onSetEightCountStart(currentTime)}>
-            <Flag size={16} /> Set Count One
-          </button>
-        )}
+      <div className="bottom-controls">
+        <div className="mirror-speed-group">
+          <div className="mirror-toggle">
+            <FlipHorizontal size={18} />
+            <span>Mirror</span>
+            <input type="checkbox" checked={mirrored} onChange={(e) => onMirroredChange(e.target.checked)} />
+          </div>
 
-        {showTapBpm && onBpmChange && (
-          <TapToBpmControl
-            initialBpm={video.bpm ?? 120}
-            onBpmChange={onBpmChange}
-          />
-        )}
-      </div>
-
-      <div className="mirror-speed-container">
-        <div className="mirror-toggle">
-          <FlipHorizontal size={18} />
-          <span>Mirror</span>
-          <input type="checkbox" checked={mirrored} onChange={(e) => onMirroredChange(e.target.checked)} />
+          <div className="speed-controls">
+            {[0.5, 0.75, 1, 1.25].map((speed) => (
+              <button
+                key={speed}
+                className={`speed-button ${player.playbackRate === speed ? "active" : ""}`}
+                onClick={() => player.setRate(speed)}
+              >
+                {speed}x
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="speed-controls">
-          {[0.5, 0.75, 1, 1.25].map((speed) => (
-            <button
-              key={speed}
-              className={`speed-button ${player.playbackRate === speed ? "active" : ""}`}
-              onClick={() => player.setRate(speed)}
-            >
-              {speed}x
-            </button>
-          ))}
+        <div className="controls-group">
+          <button onClick={() => jumpCounts(-8)} disabled={!video.countSeconds}>« 8</button>
+          <button onClick={() => jumpCounts(-1)} disabled={!video.countSeconds}>« 1</button>
+          <button onClick={() => player.isPlaying ? player.pause() : player.play()}>
+            {player.isPlaying ? <Pause size={20} /> : <Play size={20} />}
+          </button>
+          <button onClick={() => jumpCounts(1)} disabled={!video.countSeconds}>1 »</button>
+          <button onClick={() => jumpCounts(8)} disabled={!video.countSeconds}>8 »</button>
+        </div>
+
+        <div className="additional-controls">
+          <button onClick={() => onAddBookmark(player.currentTime)}>Bookmark</button>
+          {showTapBpm && onBpmChange && (
+            <TapToBpmControl
+              initialBpm={video.bpm ?? 120}
+              onBpmChange={onBpmChange}
+            />
+          )}
         </div>
       </div>
     </div>

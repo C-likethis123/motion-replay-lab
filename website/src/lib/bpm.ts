@@ -74,6 +74,28 @@ function trimLeadingSilence(samples: Float32Array, sampleRate: number) {
   };
 }
 
+function highPassSamples(
+  samples: Float32Array,
+  sampleRate: number,
+  cutoffHz: number,
+) {
+  if (samples.length === 0) {
+    return samples;
+  }
+
+  const rc = 1 / (2 * Math.PI * cutoffHz);
+  const dt = 1 / sampleRate;
+  const alpha = rc / (rc + dt);
+  const filtered = new Float32Array(samples.length);
+  filtered[0] = samples[0];
+
+  for (let index = 1; index < samples.length; index += 1) {
+    filtered[index] = alpha * (filtered[index - 1] + samples[index] - samples[index - 1]);
+  }
+
+  return filtered;
+}
+
 function lowPassSamples(
   samples: Float32Array,
   sampleRate: number,
@@ -98,7 +120,10 @@ function lowPassSamples(
 }
 
 function prepareAnalysisSamples(samples: Float32Array, sampleRate: number) {
-  const filteredSamples = lowPassSamples(samples, sampleRate, 180);
+  // Remove low frequency rumble
+  const highPassed = highPassSamples(samples, sampleRate, 50);
+  // Focus on beat frequency range
+  const filteredSamples = lowPassSamples(highPassed, sampleRate, 180);
 
   if (sampleRate <= targetSampleRate) {
     return { samples: filteredSamples, sampleRate };

@@ -14,7 +14,7 @@ export type PracticeSection = {
   id: string;
   label: string;
   start: number;
-  end: number;
+  end?: number;
 };
 
 export type BpmSource = "detected" | "tap" | "unavailable";
