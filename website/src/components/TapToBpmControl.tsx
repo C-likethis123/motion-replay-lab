@@ -3,10 +3,9 @@ import './TapToBpmControl.css';
 
 type TapToBpmControlProps = {
   onBpmChange: (bpm: number) => void;
-  initialBpm?: number;
 };
 
-export function TapToBpmControl({ onBpmChange, initialBpm = 120 }: TapToBpmControlProps) {
+export function TapToBpmControl({ onBpmChange }: TapToBpmControlProps) {
   const [tapCount, setTapCount] = useState(0);
   const startTime = useRef<number | null>(null);
 
