@@ -1,4 +1,3 @@
-import React from "react";
 import { type PracticeSection } from "../lib/db";
 import "./SectionEditor.css";
 
