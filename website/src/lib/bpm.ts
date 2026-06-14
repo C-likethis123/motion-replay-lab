@@ -1,5 +1,6 @@
 import type { AudioTimingCandidate } from "./bpm.worker";
 import BpmWorker from "./bpm.worker?worker";
+import wasmUrl from "/essentia-wasm.web.wasm?url";
 
 export type BpmEstimate = {
   bpm: number | null;
@@ -257,6 +258,10 @@ export async function estimateBpm(file: Blob | File): Promise<BpmEstimate> {
 
     logBpmPhase("submitting to worker for essentia rhythm analysis", startedAt);
     
+    // Fetch WASM in main thread
+    const wasmResponse = await fetch(wasmUrl);
+    const wasmBuffer = await wasmResponse.arrayBuffer();
+    
     return new Promise((resolve) => {
       const worker = new BpmWorker();
       
@@ -286,10 +291,11 @@ export async function estimateBpm(file: Blob | File): Promise<BpmEstimate> {
 
       worker.postMessage({
         samples: focusedAnalysis.samples,
+        wasmBuffer,
         minBpm: minDanceBpm,
         maxBpm: maxDanceBpm,
         timestampOffsetSeconds: focusedAnalysis.timestampOffsetSeconds
-      });
+      }, [wasmBuffer]); // Transfer ownership
     });
 
   } catch (error) {

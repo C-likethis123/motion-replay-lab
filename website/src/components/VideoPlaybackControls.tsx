@@ -31,6 +31,7 @@ export function VideoPlaybackControls({
 
 
 
+  console.log("VideoPlaybackControls - video.countSeconds:", video.countSeconds);
   function jumpCounts(counts: number) {
     if (!video.countSeconds) return;
     const gridStart = video.firstEightCountTimestamp ?? video.firstBeatTimestamp ?? 0;

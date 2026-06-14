@@ -68,6 +68,7 @@ export function VideosProvider({ children }: { children: ReactNode }) {
         const loadedVideos: DanceVideo[] = [];
 
         for (const meta of metadataList) {
+          console.log("Loaded meta:", meta);
           const blobRecord = await db.videoBlobs.get(meta.id);
           if (blobRecord) {
             const url = URL.createObjectURL(blobRecord.blob);
@@ -124,7 +125,10 @@ export function VideosProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateVideo = useCallback(async (id: string, updates: Partial<VideoInput>) => {
+    console.log("Updating video:", id, "with:", updates);
     await db.videos.update(id, updates);
+    const updatedMeta = await db.videos.get(id);
+    console.log("Meta after update:", updatedMeta);
 
     setVideos((current) =>
       current.map((item) =>

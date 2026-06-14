@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useRef, useState, useEffect } from "react";
 import { useVideos } from "../lib/videos";
+import { estimateBpm, deriveDetectedBpmTiming } from "../lib/bpm";
 import { useWebVideoPlayer } from "../hooks/useWebVideoPlayer";
 import { VideoPlaybackControls } from "../components/VideoPlaybackControls";
 import { TagsInput } from "../components/TagsInput";
@@ -13,6 +14,23 @@ export default function Practice() {
   const { videos, updateVideo, deleteVideo } = useVideos();
   const video = videos.find((item) => item.id === id);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Resume detection if it gets stuck
+  useEffect(() => {
+    if (video?.bpmDetectionStatus === 'detecting' && video.sourceUri) {
+        console.log("Resuming BPM detection for:", video.id);
+        fetch(video.sourceUri).then(r => r.blob()).then(blob => {
+            estimateBpm(blob).then(bpmEstimate => {
+                updateVideo(video.id, {
+                    ...deriveDetectedBpmTiming(bpmEstimate),
+                    bpmDetectionStatus: "idle",
+                    bpmDetectionError: bpmEstimate.error,
+                });
+            });
+        });
+    }
+  }, [video?.bpmDetectionStatus, video?.sourceUri, video?.id, updateVideo]);
+
   const player = useWebVideoPlayer(videoRef);
   const [mirrored, setMirrored] = useState(video?.mirrored ?? false);
 
@@ -73,7 +91,7 @@ export default function Practice() {
   return (
     <div className={`practice-page ${isSidebarOpen ? 'sidebar-open' : ''}`}>
       <div className="practice-header">
-        <div>
+        <div style={{ display: 'block' }}>
           {isEditingTitle ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
               <input 
@@ -98,35 +116,38 @@ export default function Practice() {
             <h2 onClick={() => {
               setEditingTitle(video.title);
               setIsEditingTitle(true);
-            }} style={{ cursor: 'pointer' }}>{video.title} ✏️</h2>
+            }} style={{ cursor: 'pointer', margin: 0 }}>{video.title} ✏️</h2>
           )}
-          <div style={{ display: 'flex', gap: 'var(--spacing-xs)', marginTop: 'var(--spacing-sm)', alignItems: 'center', width: '100%' }}>
-            {isEditingTags ? (
-              <>
-                <TagsInput
-                  value={video.labels}
-                  onChange={(newTags) => updateVideo(video.id, { labels: newTags })}
-                  onEnter={() => setIsEditingTags(false)}
-                />
-                <button className="btn btn-secondary" onClick={() => setIsEditingTags(false)}>Done</button>
-              </>
-            ) : (
-              <>
-                {video.labels.map(label => (
-                  <span key={label} className="tag" style={{ padding: '2px var(--spacing-sm)', fontSize: 'var(--font-size-xs)' }}>{label}</span>
-                ))}
-                <button className="btn btn-secondary" onClick={() => setIsEditingTags(true)}>Edit Tags</button>
-              </>
-            )}
-            
-            <div style={{ display: 'flex', gap: 'var(--spacing-xs)', marginLeft: 'auto' }}>
+        </div>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--spacing-sm)' }}>
+          <div style={{ display: 'flex', gap: 'var(--spacing-xs)', alignItems: 'center' }}>
+              {isEditingTags ? (
+                <>
+                  <TagsInput
+                    value={video.labels}
+                    onChange={(newTags) => updateVideo(video.id, { labels: newTags })}
+                    onEnter={() => setIsEditingTags(false)}
+                  />
+                  <button className="btn btn-secondary" onClick={() => setIsEditingTags(false)}>Done</button>
+                </>
+              ) : (
+                <>
+                  {video.labels.map(label => (
+                    <span key={label} className="tag" style={{ padding: '2px var(--spacing-sm)', fontSize: 'var(--font-size-xs)' }}>{label}</span>
+                  ))}
+                  <button className="btn btn-secondary" onClick={() => setIsEditingTags(true)}>Edit Tags</button>
+                </>
+              )}
+          </div>
+          
+          <div style={{ display: 'flex', gap: 'var(--spacing-xs)' }}>
                 <button className="btn btn-secondary" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
                 {isSidebarOpen ? 'Hide Bookmarks' : 'Show Bookmarks'}
                 </button>
                 <button className="btn btn-danger" onClick={handleDelete}>
                 Delete
                 </button>
-            </div>
           </div>
         </div>
       </div>
@@ -199,7 +220,7 @@ export default function Practice() {
         onMirroredChange={(m) => { setMirrored(m); updateVideo(video.id, { mirrored: m }); }}
 
         showTapBpm={isEditingTitle}
-        onBpmChange={(bpm) => updateVideo(video.id, { bpm })}
+        onBpmChange={(bpm) => updateVideo(video.id, { bpm, countSeconds: 60 / bpm })}
         onAddBookmark={(time) => {
            const newSection = { id: `${Date.now()}`, label: `Bookmark ${time.toFixed(1)}s`, start: time, end: time };
            const updatedSections = [...video.sections, newSection];

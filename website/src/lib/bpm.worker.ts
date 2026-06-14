@@ -91,19 +91,26 @@ console.log("[Worker] Initializing Essentia...");
 const Module = {
   ENVIRONMENT_IS_WEB: false,
   ENVIRONMENT_IS_WORKER: true,
-  locateFile: (path: string) => `/${path}`,
+  wasmBinary: null as ArrayBuffer | null,
 };
-
-// The imported module is a factory function that returns the ready promise
-EssentiaWASM(Module).then((wasmModule: any) => {
-  console.log("[Worker] Essentia WASM ready.");
-  essentia = new Essentia(wasmModule);
-});
 
 self.onmessage = async (event) => {
   console.log("[Worker] Received message:", event.data);
-  const { samples, minBpm, maxBpm, timestampOffsetSeconds } = event.data;
+  const { samples, wasmBuffer, minBpm, maxBpm, timestampOffsetSeconds } = event.data;
   
+  if (wasmBuffer && !Module.wasmBinary) {
+      Module.wasmBinary = wasmBuffer;
+      // Initialize Essentia only once we have the WASM binary
+      try {
+          const wasmModule = await EssentiaWASM(Module);
+          console.log("[Worker] Essentia WASM ready.");
+          essentia = new Essentia(wasmModule);
+      } catch (err) {
+          console.error("[Worker] Failed to initialize Essentia:", err);
+          return;
+      }
+  }
+
   // Wait for initialization
   while (!essentia) {
     console.log("[Worker] Waiting for initialization...");

@@ -49,12 +49,14 @@ export class DanceReplayDB extends Dexie {
       videoBlobs: "id",
     });
     this.version(3).stores({
-      videos: "id, title, bpm, bpmSource",
+      videos: "id, title, bpm, bpmSource, countSeconds, bpmDetectionStatus",
       videoBlobs: "id",
     }).upgrade(async (tx) => {
       await tx.table("videos").toCollection().modify((video) => {
         delete video.style;
         delete video.teacher;
+        // Ensure new fields exist
+        video.countSeconds = video.countSeconds ?? null;
       });
     });
   }
