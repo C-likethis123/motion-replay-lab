@@ -1,4 +1,5 @@
 
+import { memo, useCallback } from "react";
 import { FlipHorizontal, Pause, Play } from "lucide-react";
 import { TapToBpmControl } from "./TapToBpmControl";
 import { formatTime } from "../lib/bpm";
@@ -15,10 +16,9 @@ type VideoPlaybackControlsProps = {
   showTapBpm?: boolean;
   onBpmChange?: (bpm: number) => void;
   onAddBookmark: (time: number) => void;
-
 };
 
-export function VideoPlaybackControls({
+export const VideoPlaybackControls = memo(function VideoPlaybackControls({
   player,
   video,
   mirrored,
@@ -27,34 +27,39 @@ export function VideoPlaybackControls({
   onBpmChange,
   onAddBookmark,
 }: VideoPlaybackControlsProps) {
-  const { currentTime } = player;
+  const { currentTime, isPlaying, duration } = player;
 
-
-
-  console.log("VideoPlaybackControls - video.countSeconds:", video.countSeconds);
-  function jumpCounts(counts: number) {
+  const jumpCounts = useCallback((counts: number) => {
     if (!video.countSeconds) return;
     const gridStart = video.firstEightCountTimestamp ?? video.firstBeatTimestamp ?? 0;
     const currentBeat = Math.round((currentTime - gridStart) / video.countSeconds);
     const targetBeat = currentBeat + counts;
     player.seekTo(Math.max(0, gridStart + targetBeat * video.countSeconds));
-  }
+  }, [currentTime, video.countSeconds, video.firstEightCountTimestamp, video.firstBeatTimestamp, player]);
+
+  const togglePlay = useCallback(() => {
+    player.isPlaying ? player.pause() : player.play();
+  }, [player]);
+
+  const seek = useCallback((time: number) => {
+      player.seekTo(time);
+  }, [player]);
 
   return (
     <div className="playback-controls">
       <div className="timeline-container" style={{ position: 'relative' }}>
-        <TimelineMarkers sections={video.sections} duration={player.duration} onSeek={(time) => player.seekTo(time)} />
+        <TimelineMarkers sections={video.sections} duration={duration} onSeek={seek} />
         <div className="time-display">
-          <span>{formatTime(player.currentTime)}</span>
+          <span>{formatTime(currentTime)}</span>
           <span className="bpm-display">{video.bpm ? `${video.bpm} BPM` : ""}</span>
-          <span>{formatTime(player.duration)}</span>
+          <span>{formatTime(duration)}</span>
         </div>
         <input
           type="range"
           className="progress-slider"
           min={0}
-          max={player.duration || 1}
-          value={player.currentTime}
+          max={duration || 1}
+          value={currentTime}
           onChange={(e) => player.seekTo(parseFloat(e.target.value))}
         />
       </div>
@@ -68,7 +73,7 @@ export function VideoPlaybackControls({
           </div>
 
           <div className="speed-controls">
-            {[0.5, 0.75, 1, 1.25].map((speed) => (
+            {[0.25, 0.5, 0.75, 1].map((speed) => (
               <button
                 key={speed}
                 className={`speed-button ${player.playbackRate === speed ? "active" : ""}`}
@@ -83,15 +88,15 @@ export function VideoPlaybackControls({
         <div className="controls-group">
           <button className="playback-button" onClick={() => jumpCounts(-8)} disabled={!video.countSeconds}>« 8</button>
           <button className="playback-button" onClick={() => jumpCounts(-1)} disabled={!video.countSeconds}>« 1</button>
-          <button className="playback-button" onClick={() => player.isPlaying ? player.pause() : player.play()}>
-            {player.isPlaying ? <Pause size={20} /> : <Play size={20} />}
+          <button className="playback-button" onClick={togglePlay}>
+            {isPlaying ? <Pause size={20} /> : <Play size={20} />}
           </button>
           <button className="playback-button" onClick={() => jumpCounts(1)} disabled={!video.countSeconds}>1 »</button>
           <button className="playback-button" onClick={() => jumpCounts(8)} disabled={!video.countSeconds}>8 »</button>
         </div>
 
         <div className="additional-controls">
-          <button className="playback-button" onClick={() => onAddBookmark(player.currentTime)}>Bookmark</button>
+          <button className="playback-button" onClick={() => onAddBookmark(currentTime)}>Bookmark</button>
           {showTapBpm && onBpmChange && (
             <TapToBpmControl
               onBpmChange={onBpmChange}
@@ -101,4 +106,4 @@ export function VideoPlaybackControls({
       </div>
     </div>
   );
-}
+});
