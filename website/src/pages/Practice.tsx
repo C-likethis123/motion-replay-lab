@@ -1,6 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useRef, useState, useEffect } from "react";
-import { Trash2 } from "lucide-react";
 import { useVideos } from "../lib/videos";
 import { useWebVideoPlayer } from "../hooks/useWebVideoPlayer";
 import { VideoPlaybackControls } from "../components/VideoPlaybackControls";
