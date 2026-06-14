@@ -79,7 +79,6 @@ export default function Dashboard() {
 
       const videoId = await addVideo({
         title,
-        style: "Practice",
         teacher: "Unassigned",
         thumbnailUri,
         bpm: null,
