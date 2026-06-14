@@ -278,60 +278,71 @@ function FocusedVideoDetailContent({
         >
           Sections
         </Text>
-        {video.sections.map((section) => {
-          return (
-            <Pressable
-              key={section.id}
-              accessibilityRole="button"
-              onPress={() => jumpTo(section.start)}
-              style={({ pressed }) => ({
-                padding: spacing.xxl,
-                gap: spacing.lg,
-                borderRadius: radii.lg,
-                borderCurve: "continuous",
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.borderStrong,
-                opacity: pressed ? opacity.pressedSoft : 1,
-              })}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
+        {video.sections.length === 0 ? (
+          <Text
+            style={{
+              color: colors.textSecondary,
+              fontSize: typography.size.md,
+            }}
+          >
+            No sections yet.
+          </Text>
+        ) : (
+          video.sections.map((section) => {
+            return (
+              <Pressable
+                key={section.id}
+                accessibilityRole="button"
+                onPress={() => jumpTo(section.start)}
+                style={({ pressed }) => ({
+                  padding: spacing.xxl,
+                  gap: spacing.lg,
+                  borderRadius: radii.lg,
+                  borderCurve: "continuous",
+                  backgroundColor: colors.surface,
+                  borderWidth: 1,
+                  borderColor: colors.borderStrong,
+                  opacity: pressed ? opacity.pressedSoft : 1,
+                })}
               >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Text
+                    selectable
+                    style={{
+                      color: colors.text,
+                      fontSize: typography.size.lg,
+                      fontWeight: typography.weight.bold,
+                    }}
+                  >
+                    {section.label}
+                  </Text>
+                  <IconButton
+                    icon={Trash2}
+                    label="Delete"
+                    tone="danger"
+                    onPress={() => deleteSection(section.id)}
+                  />
+                </View>
                 <Text
                   selectable
                   style={{
-                    color: colors.text,
-                    fontSize: typography.size.lg,
-                    fontWeight: typography.weight.bold,
+                    color: colors.textSecondary,
+                    fontSize: typography.size.sm,
+                    fontVariant: ["tabular-nums"],
                   }}
                 >
-                  {section.label}
+                  {formatTime(section.start)} - {formatTime(section.end)}
                 </Text>
-                <IconButton
-                  icon={Trash2}
-                  label="Delete"
-                  tone="danger"
-                  onPress={() => deleteSection(section.id)}
-                />
-              </View>
-              <Text
-                selectable
-                style={{
-                  color: colors.textSecondary,
-                  fontSize: typography.size.sm,
-                  fontVariant: ["tabular-nums"],
-                }}
-              >
-                {formatTime(section.start)} - {formatTime(section.end)}
-              </Text>
-            </Pressable>
-          );
-        })}
+              </Pressable>
+            );
+          })
+        )}
       </View>
     </ScrollView>
   );

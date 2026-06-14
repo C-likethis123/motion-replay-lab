@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { HashRouter, Routes, Route, Link } from "react-router-dom";
 import "./App.css";
 
 import Dashboard from "./pages/Dashboard";
@@ -25,7 +25,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <VideosProvider>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route
             path="/"
@@ -44,7 +44,7 @@ export default function App() {
             }
           />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </VideosProvider>
   );
 }

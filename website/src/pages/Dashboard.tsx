@@ -71,50 +71,50 @@ export default function Dashboard() {
       return;
     }
 
-    const file = files[0];
-    const title = titleFromFileName(file.name);
+    for (const file of Array.from(files)) {
+      const title = titleFromFileName(file.name);
 
-    try {
-      const thumbnailUri = await generateVideoThumbnail(file);
+      try {
+        const thumbnailUri = await generateVideoThumbnail(file);
 
-      const videoId = await addVideo({
-        title,
-        teacher: "Unassigned",
-        thumbnailUri,
-        bpm: null,
-        countSeconds: null,
-        firstBeatTimestamp: null,
-        firstEightCountTimestamp: null,
-        bpmSource: "unavailable",
-        bpmDetectionStatus: "detecting",
-        sections: [],
-        labels: [],
-        mirrored: false,
-      }, file);
+        const videoId = await addVideo({
+          title,
+          teacher: "Unassigned",
+          thumbnailUri,
+          bpm: null,
+          countSeconds: null,
+          firstBeatTimestamp: null,
+          firstEightCountTimestamp: null,
+          bpmSource: "unavailable",
+          bpmDetectionStatus: "detecting",
+          sections: [],
+          labels: [],
+          mirrored: false,
+        }, file);
 
-      // Trigger BPM analysis in the background
-      estimateBpm(file)
-        .then((bpmEstimate) => {
-          updateVideo(videoId, {
-            ...deriveDetectedBpmTiming(bpmEstimate),
-            bpmDetectionStatus: "idle",
-            bpmDetectionError: bpmEstimate.error,
+        // Trigger BPM analysis in the background
+        estimateBpm(file)
+          .then((bpmEstimate) => {
+            updateVideo(videoId, {
+              ...deriveDetectedBpmTiming(bpmEstimate),
+              bpmDetectionStatus: "idle",
+              bpmDetectionError: bpmEstimate.error,
+            });
+          })
+          .catch((error) => {
+            console.error(error);
+            updateVideo(videoId, {
+              bpmDetectionStatus: "idle",
+              bpmDetectionError: error instanceof Error ? error.message : String(error),
+            });
           });
-        })
-        .catch((error) => {
-          console.error(error);
-          updateVideo(videoId, {
-            bpmDetectionStatus: "idle",
-            bpmDetectionError: error instanceof Error ? error.message : String(error),
-          });
-        });
-    } catch (err) {
-      console.error("Failed to import video:", err);
-      alert("Failed to import video. Please try again.");
-    } finally {
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+      } catch (err) {
+        console.error("Failed to import video:", err);
       }
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   }
 

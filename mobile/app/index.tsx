@@ -29,46 +29,15 @@ export default function LibraryScreen() {
       const result = await DocumentPicker.getDocumentAsync({
         type: "video/*",
         copyToCacheDirectory: true,
-        multiple: false,
+        multiple: true,
       });
 
       if (result.canceled) {
         return;
       }
 
-      const asset = result.assets[0];
-      const title = titleFromFileName(asset.name);
-      const thumbnailUri = await resolveThumbnail(asset.uri, "");
-
-      const videoId = addVideo({
-        title,
-        sourceUri: asset.uri,
-        thumbnailUri,
-        bpm: null,
-        countSeconds: null,
-        firstBeatTimestamp: null,
-        firstEightCountTimestamp: null,
-        bpmSource: "unavailable",
-        bpmDetectionStatus: "detecting",
-        sections: [],
-        labels: [],
-      });
-
-      estimateBpm(asset.uri)
-        .then((bpmEstimate) => {
-          updateVideo(videoId, {
-            ...deriveDetectedBpmTiming(bpmEstimate),
-            bpmDetectionStatus: "idle",
-            bpmDetectionError: bpmEstimate.error,
-          });
-        })
-        .catch((error) => {
-          console.error(error);
-          updateVideo(videoId, {
-            bpmDetectionStatus: "idle",
-            bpmDetectionError:
-              error instanceof Error ? error.message : String(error),
-          });
+      for (const asset of result.assets) {$1.catch((error) => {$2});
+      }
         });
 
       if (process.env.EXPO_OS === "ios") {

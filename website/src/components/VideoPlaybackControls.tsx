@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
-import { Flag, FlipHorizontal, Pause, Play } from "lucide-react";
+
+import { FlipHorizontal, Pause, Play } from "lucide-react";
 import { TapToBpmControl } from "./TapToBpmControl";
 import { formatTime } from "../lib/bpm";
 import type { DanceVideo } from "../lib/videos";
-import type { PracticeSection } from "../lib/db";
 import "./VideoPlaybackControls.css";
 import { TimelineMarkers } from "./TimelineMarkers";
 
@@ -28,7 +27,7 @@ export function VideoPlaybackControls({
   onBpmChange,
   onAddBookmark,
 }: VideoPlaybackControlsProps) {
-  const { currentTime, isPlaying, duration } = player;
+  const { currentTime } = player;
 
 
 
@@ -81,20 +80,19 @@ export function VideoPlaybackControls({
         </div>
 
         <div className="controls-group">
-          <button onClick={() => jumpCounts(-8)} disabled={!video.countSeconds}>« 8</button>
-          <button onClick={() => jumpCounts(-1)} disabled={!video.countSeconds}>« 1</button>
-          <button onClick={() => player.isPlaying ? player.pause() : player.play()}>
+          <button className="playback-button" onClick={() => jumpCounts(-8)} disabled={!video.countSeconds}>« 8</button>
+          <button className="playback-button" onClick={() => jumpCounts(-1)} disabled={!video.countSeconds}>« 1</button>
+          <button className="playback-button" onClick={() => player.isPlaying ? player.pause() : player.play()}>
             {player.isPlaying ? <Pause size={20} /> : <Play size={20} />}
           </button>
-          <button onClick={() => jumpCounts(1)} disabled={!video.countSeconds}>1 »</button>
-          <button onClick={() => jumpCounts(8)} disabled={!video.countSeconds}>8 »</button>
+          <button className="playback-button" onClick={() => jumpCounts(1)} disabled={!video.countSeconds}>1 »</button>
+          <button className="playback-button" onClick={() => jumpCounts(8)} disabled={!video.countSeconds}>8 »</button>
         </div>
 
         <div className="additional-controls">
-          <button onClick={() => onAddBookmark(player.currentTime)}>Bookmark</button>
+          <button className="playback-button" onClick={() => onAddBookmark(player.currentTime)}>Bookmark</button>
           {showTapBpm && onBpmChange && (
             <TapToBpmControl
-              initialBpm={video.bpm ?? 120}
               onBpmChange={onBpmChange}
             />
           )}

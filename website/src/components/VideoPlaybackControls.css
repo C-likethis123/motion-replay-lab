@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
   padding: var(--spacing-md);
   background-color: var(--color-surface);
   border-radius: var(--radius-lg);
@@ -82,8 +83,6 @@
   gap: var(--spacing-xs);
 }
 
-
-
 .speed-button {
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--radius-sm);
@@ -95,4 +94,15 @@
 .speed-button.active {
   background-color: var(--color-primary);
   color: var(--color-surface);
+}
+
+.playback-button {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

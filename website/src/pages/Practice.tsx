@@ -4,7 +4,7 @@ import { useVideos } from "../lib/videos";
 import { useWebVideoPlayer } from "../hooks/useWebVideoPlayer";
 import { VideoPlaybackControls } from "../components/VideoPlaybackControls";
 import { TagsInput } from "../components/TagsInput";
-import { SectionEditor } from "../components/SectionEditor";
+
 import "./Practice.css";
 
 export default function Practice() {
@@ -71,7 +71,7 @@ export default function Practice() {
 
 
   return (
-    <div className="practice-page">
+    <div className={`practice-page ${isSidebarOpen ? 'sidebar-open' : ''}`}>
       <div className="practice-header">
         <div>
           {isEditingTitle ? (
@@ -100,7 +100,7 @@ export default function Practice() {
               setIsEditingTitle(true);
             }} style={{ cursor: 'pointer' }}>{video.title} ✏️</h2>
           )}
-          <div style={{ display: 'flex', gap: 'var(--spacing-xs)', marginTop: 'var(--spacing-sm)', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 'var(--spacing-xs)', marginTop: 'var(--spacing-sm)', alignItems: 'center', width: '100%' }}>
             {isEditingTags ? (
               <>
                 <TagsInput
@@ -118,67 +118,77 @@ export default function Practice() {
                 <button className="btn btn-secondary" onClick={() => setIsEditingTags(true)}>Edit Tags</button>
               </>
             )}
+            
+            <div style={{ display: 'flex', gap: 'var(--spacing-xs)', marginLeft: 'auto' }}>
+                <button className="btn btn-secondary" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                {isSidebarOpen ? 'Hide Bookmarks' : 'Show Bookmarks'}
+                </button>
+                <button className="btn btn-danger" onClick={handleDelete}>
+                Delete
+                </button>
+            </div>
           </div>
-        </div>
-        <div className="actions">
-            <button className="btn btn-secondary" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-              {isSidebarOpen ? 'Hide Bookmarks' : 'Show Bookmarks'}
-            </button>
-            <button className="btn btn-danger" onClick={handleDelete}>
-              Delete
-            </button>
         </div>
       </div>
 
       <div className="practice-player-container">
-        <video ref={videoRef} src={video.sourceUri} style={{ transform: mirrored ? 'scaleX(-1)' : 'none' }} />
+        <video ref={videoRef} src={video.sourceUri} style={{ transform: mirrored ? 'scaleX(-1)' : 'none', width: '100%', height: 'auto', maxHeight: '100%', objectFit: 'contain' }} />
       </div>
-      
+        
       {isSidebarOpen && (
         <div className="bookmark-sidebar">
           <h3>Bookmarks</h3>
-          {video.sections.sort((a, b) => a.start - b.start).map(section => (
-            <div key={section.id} className="bookmark-item">
-              <span>{section.start.toFixed(0)}s</span>
-              {editingNotes[section.id] ? (
-                <>
-                  <textarea 
-                    value={notes[section.id] ?? section.note ?? ""} 
-                    onChange={e => {
-                      setNotes(prev => ({...prev, [section.id]: e.target.value}));
-                      e.target.style.height = 'auto';
-                      e.target.style.height = e.target.scrollHeight + 'px';
-                    }}
-                    placeholder="Add note..."
-                    style={{ 
-                      resize: 'none', 
-                      overflow: 'hidden', 
-                      minHeight: '1.5em',
-                      fontFamily: 'inherit',
-                      padding: 'var(--spacing-xs)'
-                    }}
-                  />
-                  <button className="btn btn-secondary" onClick={() => {
-                      const updatedSections = video.sections.map(s => s.id === section.id ? {...s, note: notes[section.id] ?? section.note} : s);
-                      updateVideo(video.id, { sections: updatedSections });
-                      setEditingNotes(prev => ({...prev, [section.id]: false}));
-                  }}>Save</button>
-                </>
-              ) : (
-                <>
-                  <span style={{ whiteSpace: 'pre-wrap' }}>{section.note || "No note"}</span>
-                  <button className="btn btn-secondary" onClick={() => {
-                    setNotes(prev => ({...prev, [section.id]: section.note ?? ""}));
-                    setEditingNotes(prev => ({...prev, [section.id]: true}));
-                  }}>Edit</button>
-                </>
-              )}
-              <button className="btn btn-danger" onClick={() => {
-                const updatedSections = video.sections.filter(s => s.id !== section.id);
-                updateVideo(video.id, { sections: updatedSections });
-              }}>Delete</button>
+          {video.sections.length === 0 ? (
+            <div style={{ padding: '16px', color: '#888', textAlign: 'center' }}>
+              No bookmarks yet.
             </div>
-          ))}
+          ) : (
+            video.sections.sort((a, b) => a.start - b.start).map(section => (
+              <div key={section.id} className="bookmark-item" style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '8px', borderBottom: '1px solid #eee' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontWeight: 'bold' }}>{section.start.toFixed(0)}s</span>
+                  <span style={{ whiteSpace: 'pre-wrap', flexGrow: 1 }}>{section.note || "No note"}</span>
+                </div>
+                {editingNotes[section.id] ? (
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <textarea 
+                      value={notes[section.id] ?? section.note ?? ""} 
+                      onChange={e => {
+                        setNotes(prev => ({...prev, [section.id]: e.target.value}));
+                        e.target.style.height = 'auto';
+                        e.target.style.height = e.target.scrollHeight + 'px';
+                      }}
+                      placeholder="Add note..."
+                      style={{ 
+                        resize: 'none', 
+                        overflow: 'hidden', 
+                        minHeight: '1.5em',
+                        fontFamily: 'inherit',
+                        padding: 'var(--spacing-xs)',
+                        flexGrow: 1
+                      }}
+                    />
+                    <button className="btn btn-secondary" onClick={() => {
+                        const updatedSections = video.sections.map(s => s.id === section.id ? {...s, note: notes[section.id] ?? section.note} : s);
+                        updateVideo(video.id, { sections: updatedSections });
+                        setEditingNotes(prev => ({...prev, [section.id]: false}));
+                    }}>Save</button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
+                    <button className="btn btn-secondary" onClick={() => {
+                      setNotes(prev => ({...prev, [section.id]: section.note ?? ""}));
+                      setEditingNotes(prev => ({...prev, [section.id]: true}));
+                    }}>Edit</button>
+                    <button className="btn btn-danger" onClick={() => {
+                      const updatedSections = video.sections.filter(s => s.id !== section.id);
+                      updateVideo(video.id, { sections: updatedSections });
+                    }}>Delete</button>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       )}
       

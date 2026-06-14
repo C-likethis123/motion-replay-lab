@@ -83,7 +83,7 @@ export function VideosProvider({ children }: { children: ReactNode }) {
   }, [videos, isLoaded]);
 
   const addVideo = useCallback((video: VideoInput) => {
-    const id = `${Date.now()}`;
+    const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
     setVideos((current) => [
       {

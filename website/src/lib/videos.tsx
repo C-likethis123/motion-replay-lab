@@ -25,6 +25,7 @@ export type DanceVideo = {
   bpmDetectionError?: string;
   sections: PracticeSection[];
   labels: string[];
+  teacher?: string;
   mirrored: boolean;
 };
 
@@ -96,7 +97,7 @@ export function VideosProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addVideo = useCallback(async (video: VideoInput, file: Blob | File) => {
-    const id = `${Date.now()}`;
+    const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const url = URL.createObjectURL(file);
     objectUrlsRef.current[id] = url;
 
