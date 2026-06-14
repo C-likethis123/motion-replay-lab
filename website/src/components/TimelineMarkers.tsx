@@ -1,4 +1,3 @@
-import React from 'react';
 import { Bookmark } from 'lucide-react';
 import type { PracticeSection } from '../lib/db';
 import './TimelineMarkers.css';
@@ -18,16 +17,16 @@ export function TimelineMarkers({ sections, duration, onSeek }: TimelineMarkersP
         const left = `${(section.start / duration) * 100}%`;
         return (
           <Bookmark
-          key={section.id}
-          className="timeline-marker"
-          style={{ left }}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSeek(section.start);
-          }}
-          title={section.label}
-          size={12}
-          fill="black"
+            key={section.id}
+            className="timeline-marker"
+            style={{ left }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSeek(section.start);
+            }}
+            aria-label={section.label}
+            size={12}
+            fill="black"
           />
         );
       })}
