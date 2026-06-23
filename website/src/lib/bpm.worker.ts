@@ -1,13 +1,19 @@
 import { Essentia } from "essentia.js";
 
-// Mock globals for Emscripten glue code
-(self as any).document = {
-  currentScript: { src: "" },
+interface GlobalMock {
+  document: {
+    currentScript: HTMLScriptElement | null;
+    title: string;
+  };
+  window: unknown;
+}
+(self as unknown as GlobalMock).document = {
+  currentScript: { src: "" } as unknown as HTMLScriptElement,
   title: ""
 };
-(self as any).window = self;
+(self as unknown as GlobalMock).window = self;
 
-// @ts-ignore
+// @ts-expect-error - essentia-wasm build glue code does not have declarations
 import EssentiaWASM from "essentia.js/dist/essentia-wasm.web.js";
 
 export type AudioTimingCandidate = {
@@ -107,6 +113,10 @@ self.onmessage = async (event) => {
           essentia = new Essentia(wasmModule);
       } catch (err) {
           console.error("[Worker] Failed to initialize Essentia:", err);
+          self.postMessage({
+              success: false,
+              error: err instanceof Error ? err.message : String(err)
+          });
           return;
       }
   }

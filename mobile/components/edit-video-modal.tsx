@@ -54,6 +54,7 @@ export function EditVideoModal({
   onSave,
 }: EditVideoModalProps) {
   const insets = useSafeAreaInsets();
+  const watchedBpm = useWatch({ control, name: "bpm" });
 
   return (
     <Modal
@@ -131,7 +132,7 @@ export function EditVideoModal({
               name="bpmSource"
               render={({ field: { onChange: onSourceChange } }) => (
                 <TapToBpmControl
-                  initialBpm={useWatch({ control, name: "bpm" }) ?? 120}
+                  initialBpm={watchedBpm ?? 120}
                   onBpmChange={(bpm) => {
                     const timing = deriveBpmTiming(bpm);
                     onBpmChange(timing.bpm);

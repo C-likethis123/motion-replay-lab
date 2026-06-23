@@ -18,6 +18,7 @@ const analysisSeconds = 75;
 const rhythmicWindowSeconds = 30;
 const targetSampleRate = 44_100;
 const minimumConfidence = 0.35;
+const maxAutoDetectFileBytes = 500 * 1024 * 1024;
 
 function logBpmPhase(message: string, startedAt?: number) {
   const elapsed = startedAt ? ` +${Date.now() - startedAt}ms` : "";
@@ -221,8 +222,14 @@ export async function estimateBpm(file: Blob | File): Promise<BpmEstimate> {
   logBpmPhase("start");
 
   try {
-    // Decode audio track using AudioContext
-    const audioCtx = new AudioContext();
+    if (file.size > maxAutoDetectFileBytes) {
+      return unavailable(
+        "Automatic BPM detection is skipped for videos larger than 500 MB.",
+      );
+    }
+
+    // Decode audio track using OfflineAudioContext to run in the background
+    const audioCtx = new OfflineAudioContext(1, 1, 44_100);
     
     logBpmPhase("reading file buffer");
     const arrayBuffer = await file.arrayBuffer();

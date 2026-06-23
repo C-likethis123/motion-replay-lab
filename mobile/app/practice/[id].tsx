@@ -7,7 +7,6 @@ import { Pencil, Trash2 } from "lucide-react-native";
 import { useForm } from "react-hook-form";
 import { EditVideoModal, EditVideoDraft } from "@/components/edit-video-modal";
 import { VideoPlaybackControls } from "@/components/video-playback-controls";
-import { deriveBpmTiming } from "@/lib/bpm";
 import { useVideos, DanceVideo, PracticeSection } from "@/lib/videos";
 import { colors, radii, spacing } from "@/lib/theme";
 
@@ -61,13 +60,24 @@ export default function PracticeScreen() {
   const { videos, updateVideo, deleteVideo } = useVideos();
   const video = videos.find((item) => item.id === id);
   const [showEdit, setShowEdit] = useState(false);
-  const { control, handleSubmit, reset } = useForm<EditVideoDraft>({
+  const {
+    control,
+    formState: { errors },
+    handleSubmit,
+    reset,
+    setValue,
+  } = useForm<EditVideoDraft>({
     defaultValues: makeDraft(video),
   });
 
   const source = useMemo(() => (video ? { uri: video.sourceUri } : null), [video]);
   const player = useVideoPlayer(source, (createdPlayer) => {
-    createdPlayer.timeUpdateEventInterval = 0.25;
+    createdPlayer.timeUpdateEventInterval = 1;
+    createdPlayer.bufferOptions = {
+      preferredForwardBufferDuration: 45,
+      minBufferForPlayback: 4,
+      prioritizeTimeOverSizeThreshold: true,
+    };
   });
   const [mirrored, setMirrored] = useState(false);
 
@@ -117,7 +127,11 @@ export default function PracticeScreen() {
       <EditVideoModal
         visible={showEdit}
         control={control}
+        errors={errors}
+        sourceLabel={video.sourceUri}
+        setValue={setValue}
         onClose={() => setShowEdit(false)}
+        onPickVideo={() => {}}
         onSave={saveEdit}
       />
       

@@ -9,6 +9,7 @@ import React, {
   useRef,
 } from "react";
 import { db, type VideoMetadata, type PracticeSection, type BpmSource, type BpmDetectionStatus, type VideoThumbnailSource } from "./db";
+import { estimateBpm, deriveDetectedBpmTiming } from "./bpm";
 
 export type DanceVideo = {
   id: string;
@@ -45,6 +46,7 @@ export function VideosProvider({ children }: { children: ReactNode }) {
   const [videos, setVideos] = useState<DanceVideo[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const objectUrlsRef = useRef<Record<string, string>>({});
+  const activeDetectionsRef = useRef<Set<string>>(new Set());
 
   // Clean up object URLs on unmount
   useEffect(() => {
@@ -59,6 +61,71 @@ export function VideosProvider({ children }: { children: ReactNode }) {
       });
     };
   }, []);
+
+  const updateVideo = useCallback(async (id: string, updates: Partial<VideoInput>) => {
+    console.log("Updating video:", id, "with:", updates);
+    await db.videos.update(id, updates);
+    const updatedMeta = await db.videos.get(id);
+    console.log("Meta after update:", updatedMeta);
+
+    setVideos((current) =>
+      current.map((item) =>
+        item.id === id ? { ...item, ...updates } : item
+      )
+    );
+  }, []);
+
+  const runDetection = useCallback(async (id: string, file: Blob | File) => {
+    if (activeDetectionsRef.current.has(id)) return;
+    activeDetectionsRef.current.add(id);
+
+    try {
+      const bpmEstimate = await estimateBpm(file);
+      await updateVideo(id, {
+        ...deriveDetectedBpmTiming(bpmEstimate),
+        bpmDetectionStatus: "idle",
+        bpmDetectionError: bpmEstimate.error,
+      });
+    } catch (error) {
+      console.error("BPM detection failed for:", id, error);
+      await updateVideo(id, {
+        bpmDetectionStatus: "idle",
+        bpmDetectionError: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      activeDetectionsRef.current.delete(id);
+    }
+  }, [updateVideo]);
+
+  const addVideo = useCallback(async (video: VideoInput, file: Blob | File) => {
+    const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const url = URL.createObjectURL(file);
+    objectUrlsRef.current[id] = url;
+
+    const metadata: VideoMetadata = {
+      ...video,
+      id,
+      sections: video.sections.length > 0 ? video.sections : [],
+      bpmDetectionStatus: "detecting",
+    };
+
+    await db.transaction("rw", [db.videos, db.videoBlobs], async () => {
+      await db.videos.add(metadata);
+      await db.videoBlobs.add({ id, blob: file });
+    });
+
+    setVideos((current) => [
+      {
+        ...metadata,
+        sourceUri: url,
+      },
+      ...current,
+    ]);
+
+    runDetection(id, file);
+
+    return id;
+  }, [runDetection]);
 
   // Load videos from DB on mount
   useEffect(() => {
@@ -77,6 +144,9 @@ export function VideosProvider({ children }: { children: ReactNode }) {
               ...meta,
               sourceUri: url,
             });
+            if (meta.bpmDetectionStatus === "detecting") {
+              runDetection(meta.id, blobRecord.blob);
+            }
           } else {
             loadedVideos.push({
               ...meta,
@@ -95,47 +165,7 @@ export function VideosProvider({ children }: { children: ReactNode }) {
       }
     }
     loadVideos();
-  }, []);
-
-  const addVideo = useCallback(async (video: VideoInput, file: Blob | File) => {
-    const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    const url = URL.createObjectURL(file);
-    objectUrlsRef.current[id] = url;
-
-    const metadata: VideoMetadata = {
-      ...video,
-      id,
-      sections: video.sections.length > 0 ? video.sections : [],
-    };
-
-    await db.transaction("rw", [db.videos, db.videoBlobs], async () => {
-      await db.videos.add(metadata);
-      await db.videoBlobs.add({ id, blob: file });
-    });
-
-    setVideos((current) => [
-      {
-        ...metadata,
-        sourceUri: url,
-      },
-      ...current,
-    ]);
-
-    return id;
-  }, []);
-
-  const updateVideo = useCallback(async (id: string, updates: Partial<VideoInput>) => {
-    console.log("Updating video:", id, "with:", updates);
-    await db.videos.update(id, updates);
-    const updatedMeta = await db.videos.get(id);
-    console.log("Meta after update:", updatedMeta);
-
-    setVideos((current) =>
-      current.map((item) =>
-        item.id === id ? { ...item, ...updates } : item
-      )
-    );
-  }, []);
+  }, [runDetection]);
 
   const deleteVideo = useCallback(async (id: string) => {
     const url = objectUrlsRef.current[id];
