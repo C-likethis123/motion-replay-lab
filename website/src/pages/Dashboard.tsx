@@ -2,7 +2,6 @@ import { useMemo, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Search, Plus, Play, Trash2 } from "lucide-react";
 import { useVideos } from "../lib/videos";
-import { estimateBpm, deriveDetectedBpmTiming } from "../lib/bpm";
 import "./Dashboard.css";
 
 function titleFromFileName(name: string) {
@@ -53,7 +52,7 @@ function generateVideoThumbnail(file: Blob | File): Promise<string | null> {
 }
 
 export default function Dashboard() {
-  const { videos, addVideo, updateVideo, deleteVideo, isLoaded } = useVideos();
+  const { videos, addVideo, deleteVideo, isLoaded } = useVideos();
   const [query, setQuery] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -77,7 +76,7 @@ export default function Dashboard() {
       try {
         const thumbnailUri = await generateVideoThumbnail(file);
 
-        const videoId = await addVideo({
+        await addVideo({
           title,
           teacher: "Unassigned",
           thumbnailUri,
@@ -91,23 +90,6 @@ export default function Dashboard() {
           labels: [],
           mirrored: false,
         }, file);
-
-        // Trigger BPM analysis in the background
-        estimateBpm(file)
-          .then((bpmEstimate) => {
-            updateVideo(videoId, {
-              ...deriveDetectedBpmTiming(bpmEstimate),
-              bpmDetectionStatus: "idle",
-              bpmDetectionError: bpmEstimate.error,
-            });
-          })
-          .catch((error) => {
-            console.error(error);
-            updateVideo(videoId, {
-              bpmDetectionStatus: "idle",
-              bpmDetectionError: error instanceof Error ? error.message : String(error),
-            });
-          });
       } catch (err) {
         console.error("Failed to import video:", err);
       }

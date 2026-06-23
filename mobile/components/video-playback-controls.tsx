@@ -1,50 +1,65 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Pressable, Switch, Text, View } from "react-native";
 import Slider from "@react-native-community/slider";
+import { useEvent, useEventListener } from "expo";
 import * as Haptics from "expo-haptics";
 import type { VideoPlayer } from "expo-video";
 import {
-  Flag,
   FlipHorizontal,
   Pause,
   Play,
   SkipBack,
   SkipForward,
+} from "lucide-react-native";
+
 import { IconButton } from "@/components/icon-button";
 import { TimelineMarkers } from "@/components/timeline-markers";
-import { TapToBpmControl } from "@/components/tap-to-bpm-control";
-// ... existing imports
+import { formatBpm } from "@/lib/bpm";
+import { colors, opacity, radii, spacing, typography } from "@/lib/theme";
+import type { DanceVideo } from "@/lib/videos";
+
+type VideoPlaybackControlsProps = {
+  player: VideoPlayer;
+  video: DanceVideo;
+  mirrored: boolean;
+  onMirroredChange: (mirrored: boolean) => void;
+};
+
+const speeds = [0.5, 0.75, 1, 1.25];
 
 export function VideoPlaybackControls({
   player,
   video,
   mirrored,
   onMirroredChange,
-
-
 }: VideoPlaybackControlsProps) {
-  const [isPlaying, setIsPlaying] = useState(player.playing);
-  const [currentTime, setCurrentTime] = useState(player.currentTime);
-  const [duration, setDuration] = useState(player.duration);
-  const [playbackRate, setPlaybackRate] = useState(player.playbackRate);
-  const [sliderWidth, setSliderWidth] = useState(0);
-  const countSeconds = video.countSeconds;
-// ...
+  const timeUpdate = useEvent(player, "timeUpdate", {
+    currentTime: player.currentTime,
+    currentLiveTimestamp: player.currentLiveTimestamp,
+    currentOffsetFromLive: player.currentOffsetFromLive,
+    bufferedPosition: player.bufferedPosition,
+  });
+  const playingChange = useEvent(player, "playingChange", {
+    isPlaying: player.playing,
+  });
+  const playbackRateChange = useEvent(player, "playbackRateChange", {
+    playbackRate: player.playbackRate,
+  });
+  const sourceLoad = useEvent(player, "sourceLoad", null);
 
+  const [sliderWidth, setSliderWidth] = useState(0);
+  const currentTime = timeUpdate?.currentTime ?? player.currentTime;
+  const duration = sourceLoad?.duration || player.duration || 0;
+  const isPlaying = playingChange?.isPlaying ?? player.playing;
+  const playbackRate = playbackRateChange?.playbackRate ?? player.playbackRate;
+  const countSeconds = video.countSeconds;
   const gridStart = video.firstEightCountTimestamp ?? video.firstBeatTimestamp;
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(player.currentTime || 0);
-      setDuration(player.duration || 0);
-      setIsPlaying(player.playing);
-      setPlaybackRate(player.playbackRate);
-
-
-    }, 250);
-
-    return () => clearInterval(interval);
-  }, [player]);
+  useEventListener(player, "statusChange", ({ status, error }) => {
+    if (status === "error") {
+      console.error("Video playback failed:", error?.message);
+    }
+  });
 
   function hapticTap() {
     if (process.env.EXPO_OS === "ios") {
@@ -59,7 +74,6 @@ export function VideoPlaybackControls({
     } else {
       player.play();
     }
-    setIsPlaying(!player.playing);
   }
 
   function jump(seconds: number) {
@@ -87,7 +101,6 @@ export function VideoPlaybackControls({
   function setSpeed(speed: number) {
     // eslint-disable-next-line react-hooks/immutability
     player.playbackRate = speed;
-    setPlaybackRate(speed);
     hapticTap();
   }
 
@@ -133,15 +146,27 @@ export function VideoPlaybackControls({
             {formatTime(duration)}
           </Text>
         </View>
-        <View 
-          onLayout={(e) => setSliderWidth(e.nativeEvent.layout.width)}
-          style={{ position: 'relative' }}>
-          <TimelineMarkers sections={video.sections} duration={duration} onSeek={(time) => (player.currentTime = time)} sliderWidth={sliderWidth} />
+        <View
+          onLayout={(event) => setSliderWidth(event.nativeEvent.layout.width)}
+          style={{ position: "relative" }}
+        >
+          <TimelineMarkers
+            sections={video.sections}
+            duration={duration}
+            onSeek={(time) => {
+              // eslint-disable-next-line react-hooks/immutability
+              player.currentTime = time;
+            }}
+            sliderWidth={sliderWidth}
+          />
           <Slider
             minimumValue={0}
             maximumValue={duration || 1}
             value={currentTime}
-            onSlidingComplete={(value) => (player.currentTime = value)}
+            onSlidingComplete={(value) => {
+              // eslint-disable-next-line react-hooks/immutability
+              player.currentTime = value;
+            }}
             minimumTrackTintColor={colors.accent}
             maximumTrackTintColor={colors.progressTrack}
             thumbTintColor={colors.accent}
@@ -165,7 +190,7 @@ export function VideoPlaybackControls({
         />
         <IconButton
           icon={SkipBack}
-          label="Back eight count"
+          label="Back eight counts"
           onPress={() => jumpCounts(-8)}
           disabled={!countSeconds}
         />
@@ -184,15 +209,11 @@ export function VideoPlaybackControls({
         />
         <IconButton
           icon={SkipForward}
-          label="Forward eight count"
+          label="Forward eight counts"
           onPress={() => jumpCounts(8)}
           disabled={!countSeconds}
         />
       </View>
-
-
-
-
 
       <View
         style={{
@@ -269,8 +290,8 @@ export function VideoPlaybackControls({
   );
 }
 
-export function formatTime(seconds: number) {
-  if (!Number.isFinite(seconds) || seconds < 0) {
+export function formatTime(seconds: number | undefined) {
+  if (!Number.isFinite(seconds) || seconds == null || seconds < 0) {
     return "0:00";
   }
 

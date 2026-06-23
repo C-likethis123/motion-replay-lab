@@ -1,7 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useRef, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useVideos } from "../lib/videos";
-import { estimateBpm, deriveDetectedBpmTiming } from "../lib/bpm";
 import { useWebVideoPlayer } from "../hooks/useWebVideoPlayer";
 import { VideoPlaybackControls } from "../components/VideoPlaybackControls";
 import { TagsInput } from "../components/TagsInput";
@@ -13,26 +12,15 @@ export default function Practice() {
   const navigate = useNavigate();
   const { videos, updateVideo, deleteVideo } = useVideos();
   const video = videos.find((item) => item.id === id);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Resume detection if it gets stuck
-  useEffect(() => {
-    if (video?.bpmDetectionStatus === 'detecting' && video.sourceUri) {
-        console.log("Resuming BPM detection for:", video.id);
-        fetch(video.sourceUri).then(r => r.blob()).then(blob => {
-            estimateBpm(blob).then(bpmEstimate => {
-                updateVideo(video.id, {
-                    ...deriveDetectedBpmTiming(bpmEstimate),
-                    bpmDetectionStatus: "idle",
-                    bpmDetectionError: bpmEstimate.error,
-                });
-            });
-        });
-    }
-  }, [video?.bpmDetectionStatus, video?.sourceUri, video?.id, updateVideo]);
-
-  const player = useWebVideoPlayer(videoRef);
+  const { setVideoNode, ...player } = useWebVideoPlayer();
   const [mirrored, setMirrored] = useState(video?.mirrored ?? false);
+  const [lastVideoId, setLastVideoId] = useState<string | null>(null);
+
+  if (video && video.id !== lastVideoId) {
+    setLastVideoId(video.id);
+    setMirrored(video.mirrored);
+  }
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState(video?.title || "");
@@ -42,18 +30,19 @@ export default function Practice() {
   const [editingNotes, setEditingNotes] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (video) {
-      setMirrored(video.mirrored);
-    }
-  }, [video]);
-
-  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!player || !video || isEditingTitle || isEditingTags) return;
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       const countSeconds = video.countSeconds || 1;
       switch (e.key) {
-        case " ": e.preventDefault(); player.isPlaying ? player.pause() : player.play(); break;
+        case " ":
+          e.preventDefault();
+          if (player.isPlaying) {
+            player.pause();
+          } else {
+            player.play();
+          }
+          break;
         case "m": case "M": {
           const newMirrored = !mirrored;
           setMirrored(newMirrored);
@@ -153,7 +142,13 @@ export default function Practice() {
       </div>
 
       <div className="practice-player-container">
-        <video ref={videoRef} src={video.sourceUri} style={{ transform: mirrored ? 'scaleX(-1)' : 'none', width: '100%', height: 'auto', maxHeight: '100%', objectFit: 'contain' }} />
+        <video
+          ref={setVideoNode}
+          src={video.sourceUri}
+          preload="auto"
+          playsInline
+          style={{ transform: mirrored ? 'scaleX(-1)' : 'none', width: '100%', height: 'auto', maxHeight: '100%', objectFit: 'contain' }}
+        />
       </div>
         
       {isSidebarOpen && (

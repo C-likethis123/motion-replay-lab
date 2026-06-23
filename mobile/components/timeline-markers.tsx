@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import type { PracticeSection } from '@/lib/videos';
-import { colors, spacing } from '@/lib/theme';
+import { colors } from '@/lib/theme';
 
 interface TimelineMarkersProps {
   sections: PracticeSection[];

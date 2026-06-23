@@ -36,9 +36,40 @@ export default function LibraryScreen() {
         return;
       }
 
-      for (const asset of result.assets) {$1.catch((error) => {$2});
-      }
+      for (const asset of result.assets) {
+        const sourceUri = asset.uri;
+        const title = titleFromFileName(asset.name);
+        const id = addVideo({
+          title,
+          sourceUri,
+          thumbnailUri: await resolveThumbnail(sourceUri, ""),
+          bpm: null,
+          countSeconds: null,
+          firstBeatTimestamp: null,
+          firstEightCountTimestamp: null,
+          bpmSource: "unavailable",
+          bpmDetectionStatus: "detecting",
+          sections: [],
+          labels: [],
+          duration: undefined,
         });
+
+        estimateBpm(sourceUri)
+          .then((estimate) => {
+            updateVideo(id, {
+              ...deriveDetectedBpmTiming(estimate),
+              bpmDetectionStatus: "idle",
+              bpmDetectionError: estimate.error,
+            });
+          })
+          .catch((error) => {
+            console.error("Failed to analyze BPM", error);
+            updateVideo(id, {
+              bpmDetectionStatus: "idle",
+              bpmDetectionError: "Could not analyze BPM for this video.",
+            });
+          });
+      }
 
       if (process.env.EXPO_OS === "ios") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

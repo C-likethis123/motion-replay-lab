@@ -1,14 +1,40 @@
-import { useState, useEffect, type RefObject } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
-export function useWebVideoPlayer(videoRef: RefObject<HTMLVideoElement | null>) {
+export type WebVideoPlayer = {
+  setVideoNode: (node: HTMLVideoElement | null) => void;
+  isPlaying: boolean;
+  currentTime: number;
+  duration: number;
+  playbackRate: number;
+  play: () => void;
+  pause: () => void;
+  seekTo: (time: number) => void;
+  seekBy: (seconds: number) => void;
+  setRate: (rate: number) => void;
+};
+
+export function useWebVideoPlayer(): WebVideoPlayer {
+  const elementRef = useRef<HTMLVideoElement | null>(null);
+  const [version, setVersion] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
 
+  const setVideoNode = useCallback((node: HTMLVideoElement | null) => {
+    elementRef.current = node;
+    if (node) {
+      setIsPlaying(!node.paused);
+      setCurrentTime(node.currentTime);
+      setDuration(node.duration || 0);
+      setPlaybackRate(node.playbackRate);
+    }
+    setVersion((v) => v + 1);
+  }, []);
+
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+    const el = elementRef.current;
+    if (!el) return;
 
     let rafId: number;
     let lastTime = -1;
@@ -19,72 +45,68 @@ export function useWebVideoPlayer(videoRef: RefObject<HTMLVideoElement | null>) 
       // Throttle updates using requestAnimationFrame
       cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
-        const currentTime = video.currentTime;
-        if (Math.abs(currentTime - lastTime) > 0.05) {
-          setCurrentTime(currentTime);
-          lastTime = currentTime;
+        const time = el.currentTime;
+        if (Math.abs(time - lastTime) > 0.05) {
+          setCurrentTime(time);
+          lastTime = time;
         }
       });
     };
-    const onDurationChange = () => setDuration(video.duration);
-    const onRateChange = () => setPlaybackRate(video.playbackRate);
+    const onDurationChange = () => setDuration(el.duration);
+    const onRateChange = () => setPlaybackRate(el.playbackRate);
 
-    // Initial state
-    setIsPlaying(!video.paused);
-    setCurrentTime(video.currentTime);
-    setDuration(video.duration || 0);
-    setPlaybackRate(video.playbackRate);
-
-    video.addEventListener("play", onPlay);
-    video.addEventListener("pause", onPause);
-    video.addEventListener("timeupdate", onTimeUpdate);
-    video.addEventListener("durationchange", onDurationChange);
-    video.addEventListener("ratechange", onRateChange);
+    el.addEventListener("play", onPlay);
+    el.addEventListener("pause", onPause);
+    el.addEventListener("timeupdate", onTimeUpdate);
+    el.addEventListener("durationchange", onDurationChange);
+    el.addEventListener("ratechange", onRateChange);
 
     return () => {
       cancelAnimationFrame(rafId);
-      video.removeEventListener("play", onPlay);
-      video.removeEventListener("pause", onPause);
-      video.removeEventListener("timeupdate", onTimeUpdate);
-      video.removeEventListener("durationchange", onDurationChange);
-      video.removeEventListener("ratechange", onRateChange);
+      el.removeEventListener("play", onPlay);
+      el.removeEventListener("pause", onPause);
+      el.removeEventListener("timeupdate", onTimeUpdate);
+      el.removeEventListener("durationchange", onDurationChange);
+      el.removeEventListener("ratechange", onRateChange);
     };
-  }, [videoRef]);
+  }, [version]);
 
   const play = () => {
-    videoRef.current?.play().catch((e) => console.error("Playback failed:", e));
+    elementRef.current?.play().catch((e) => console.error("Playback failed:", e));
   };
 
   const pause = () => {
-    videoRef.current?.pause();
+    elementRef.current?.pause();
   };
 
   const seekTo = (time: number) => {
-    const clampedTime = Math.max(0, Math.min(time, duration));
-    if (videoRef.current) {
-      videoRef.current.currentTime = clampedTime;
-    }
+    const el = elementRef.current;
+    if (!el) return;
+    const clampedTime = Math.max(0, Math.min(time, duration || el.duration || 0));
+    el.currentTime = clampedTime;
     setCurrentTime(clampedTime);
   };
 
   const seekBy = (seconds: number) => {
-    if (videoRef.current) {
-      const newTime = Math.max(
-        0,
-        Math.min(videoRef.current.currentTime + seconds, duration)
-      );
-      videoRef.current.currentTime = newTime;
-      setCurrentTime(newTime);
-    }
+    const el = elementRef.current;
+    if (!el) return;
+    const newTime = Math.max(
+      0,
+      Math.min(el.currentTime + seconds, duration || el.duration || 0)
+    );
+    el.currentTime = newTime;
+    setCurrentTime(newTime);
   };
 
   const setRate = (rate: number) => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = rate;
+    const el = elementRef.current;
+    if (el) {
+      el.playbackRate = rate;
     }
   };
 
   return {
+    setVideoNode,
     isPlaying,
     currentTime,
     duration,
@@ -96,3 +118,5 @@ export function useWebVideoPlayer(videoRef: RefObject<HTMLVideoElement | null>) 
     setRate,
   };
 }
+
+

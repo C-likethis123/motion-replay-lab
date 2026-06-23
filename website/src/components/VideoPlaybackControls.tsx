@@ -4,11 +4,12 @@ import { FlipHorizontal, Pause, Play } from "lucide-react";
 import { TapToBpmControl } from "./TapToBpmControl";
 import { formatTime } from "../lib/bpm";
 import type { DanceVideo } from "../lib/videos";
+import type { WebVideoPlayer } from "../hooks/useWebVideoPlayer";
 import "./VideoPlaybackControls.css";
 import { TimelineMarkers } from "./TimelineMarkers";
 
 type VideoPlaybackControlsProps = {
-  player: any;
+  player: Omit<WebVideoPlayer, "setVideoNode">;
   video: DanceVideo;
   mirrored: boolean;
   onMirroredChange: (mirrored: boolean) => void;
@@ -38,7 +39,11 @@ export const VideoPlaybackControls = memo(function VideoPlaybackControls({
   }, [currentTime, video.countSeconds, video.firstEightCountTimestamp, video.firstBeatTimestamp, player]);
 
   const togglePlay = useCallback(() => {
-    player.isPlaying ? player.pause() : player.play();
+    if (player.isPlaying) {
+      player.pause();
+    } else {
+      player.play();
+    }
   }, [player]);
 
   const seek = useCallback((time: number) => {
