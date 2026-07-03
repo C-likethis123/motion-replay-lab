@@ -14,7 +14,8 @@ export function TimelineMarkers({ sections, duration, onSeek }: TimelineMarkersP
   return (
     <div className="timeline-markers-container">
       {sections.map((section) => {
-        const left = `${(section.start / duration) * 100}%`;
+        const progress = Math.min(Math.max(section.start / duration, 0), 1);
+        const left = `${progress * 100}%`;
         return (
           <Bookmark
             key={section.id}
@@ -26,7 +27,6 @@ export function TimelineMarkers({ sections, duration, onSeek }: TimelineMarkersP
             }}
             aria-label={section.label}
             size={12}
-            fill="black"
           />
         );
       })}

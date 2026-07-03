@@ -1,6 +1,6 @@
 
 import { memo, useCallback } from "react";
-import { FlipHorizontal, Pause, Play } from "lucide-react";
+import { Bookmark, FlipHorizontal, Pause, Play } from "lucide-react";
 import { TapToBpmControl } from "./TapToBpmControl";
 import { formatTime } from "../lib/bpm";
 import type { DanceVideo } from "../lib/videos";
@@ -52,21 +52,23 @@ export const VideoPlaybackControls = memo(function VideoPlaybackControls({
 
   return (
     <div className="playback-controls">
-      <div className="timeline-container" style={{ position: 'relative' }}>
-        <TimelineMarkers sections={video.sections} duration={duration} onSeek={seek} />
+      <div className="timeline-container">
         <div className="time-display">
           <span>{formatTime(currentTime)}</span>
           <span className="bpm-display">{video.bpm ? `${video.bpm} BPM` : ""}</span>
           <span>{formatTime(duration)}</span>
         </div>
-        <input
-          type="range"
-          className="progress-slider"
-          min={0}
-          max={duration || 1}
-          value={currentTime}
-          onChange={(e) => player.seekTo(parseFloat(e.target.value))}
-        />
+        <div className="slider-wrapper">
+          <TimelineMarkers sections={video.sections} duration={duration} onSeek={seek} />
+          <input
+            type="range"
+            className="progress-slider"
+            min={0}
+            max={duration || 1}
+            value={currentTime}
+            onChange={(e) => player.seekTo(parseFloat(e.target.value))}
+          />
+        </div>
       </div>
 
       <div className="bottom-controls">
@@ -98,16 +100,19 @@ export const VideoPlaybackControls = memo(function VideoPlaybackControls({
           </button>
           <button className="playback-button" onClick={() => jumpCounts(1)} disabled={!video.countSeconds}>1 »</button>
           <button className="playback-button" onClick={() => jumpCounts(8)} disabled={!video.countSeconds}>8 »</button>
+          <button className="playback-button bookmark-button" onClick={() => onAddBookmark(currentTime)}>
+            <Bookmark size={16} />
+            <span>Bookmark</span>
+          </button>
         </div>
 
-        <div className="additional-controls">
-          <button className="playback-button" onClick={() => onAddBookmark(currentTime)}>Bookmark</button>
-          {showTapBpm && onBpmChange && (
+        {showTapBpm && onBpmChange && (
+          <div className="additional-controls">
             <TapToBpmControl
               onBpmChange={onBpmChange}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

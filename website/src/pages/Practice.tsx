@@ -78,150 +78,159 @@ export default function Practice() {
 
 
   return (
-    <div className={`practice-page ${isSidebarOpen ? 'sidebar-open' : ''}`}>
-      <div className="practice-header">
-        <div style={{ display: 'block' }}>
-          {isEditingTitle ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
-              <input 
-                value={editingTitle} 
-                onChange={e => setEditingTitle(e.target.value)} 
-                size={Math.max(video.title.length, 10)}
-                style={{ 
-                  fontSize: 'var(--font-size-title)', 
-                  fontWeight: 'bold', 
-                  fontFamily: 'inherit',
-                  padding: 'var(--spacing-xs)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: 'var(--radius-sm)'
-                }}
-              />
-              <button className="btn btn-primary" onClick={() => {
-                  updateVideo(video.id, { title: editingTitle });
-                  setIsEditingTitle(false);
-              }}>Save</button>
-            </div>
-          ) : (
-            <h2 onClick={() => {
-              setEditingTitle(video.title);
-              setIsEditingTitle(true);
-            }} style={{ cursor: 'pointer', margin: 0 }}>{video.title} ✏️</h2>
-          )}
-        </div>
+    <div className="practice-page">
+      <div className={`practice-layout-grid ${isSidebarOpen ? 'with-sidebar' : 'no-sidebar'}`}>
         
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--spacing-sm)' }}>
-          <div style={{ display: 'flex', gap: 'var(--spacing-xs)', alignItems: 'center' }}>
-              {isEditingTags ? (
-                <>
-                  <TagsInput
-                    value={video.labels}
-                    onChange={(newTags) => updateVideo(video.id, { labels: newTags })}
-                    onEnter={() => setIsEditingTags(false)}
-                  />
-                  <button className="btn btn-secondary" onClick={() => setIsEditingTags(false)}>Done</button>
-                </>
-              ) : (
-                <>
-                  {video.labels.map(label => (
-                    <span key={label} className="tag" style={{ padding: '2px var(--spacing-sm)', fontSize: 'var(--font-size-xs)' }}>{label}</span>
-                  ))}
-                  <button className="btn btn-secondary" onClick={() => setIsEditingTags(true)}>Edit Tags</button>
-                </>
-              )}
+        {/* Main Column: Player, Controls, and details */}
+        <div className="practice-main-content">
+          <div className="practice-player-container">
+            <video
+              ref={setVideoNode}
+              src={video.sourceUri}
+              preload="auto"
+              playsInline
+              style={{ transform: mirrored ? 'scaleX(-1)' : 'none', width: '100%', height: 'auto', maxHeight: '100%', objectFit: 'contain' }}
+            />
           </div>
           
-          <div style={{ display: 'flex', gap: 'var(--spacing-xs)' }}>
-                <button className="btn btn-secondary" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-                {isSidebarOpen ? 'Hide Bookmarks' : 'Show Bookmarks'}
-                </button>
-                <button className="btn btn-danger" onClick={handleDelete}>
-                Delete
-                </button>
-          </div>
-        </div>
-      </div>
+          <VideoPlaybackControls
+            player={player}
+            video={video}
+            mirrored={mirrored}
+            onMirroredChange={(m) => { setMirrored(m); updateVideo(video.id, { mirrored: m }); }}
+            showTapBpm={isEditingTitle}
+            onBpmChange={(bpm) => updateVideo(video.id, { bpm, countSeconds: 60 / bpm })}
+            onAddBookmark={(time) => {
+               const newSection = { id: `${Date.now()}`, label: `Bookmark ${time.toFixed(1)}s`, start: time, end: time };
+               const updatedSections = [...video.sections, newSection];
+               updateVideo(video.id, { sections: updatedSections });
+            }}
+          />
 
-      <div className="practice-player-container">
-        <video
-          ref={setVideoNode}
-          src={video.sourceUri}
-          preload="auto"
-          playsInline
-          style={{ transform: mirrored ? 'scaleX(-1)' : 'none', width: '100%', height: 'auto', maxHeight: '100%', objectFit: 'contain' }}
-        />
-      </div>
-        
-      {isSidebarOpen && (
-        <div className="bookmark-sidebar">
-          <h3>Bookmarks</h3>
-          {video.sections.length === 0 ? (
-            <div style={{ padding: '16px', color: '#888', textAlign: 'center' }}>
-              No bookmarks yet.
-            </div>
-          ) : (
-            video.sections.sort((a, b) => a.start - b.start).map(section => (
-              <div key={section.id} className="bookmark-item" style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '8px', borderBottom: '1px solid #eee' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontWeight: 'bold' }}>{section.start.toFixed(0)}s</span>
-                  <span style={{ whiteSpace: 'pre-wrap', flexGrow: 1 }}>{section.note || "No note"}</span>
+          <div className="practice-details-card">
+            <div className="details-header-row">
+              {isEditingTitle ? (
+                <div className="title-edit-container">
+                  <input 
+                    value={editingTitle} 
+                    onChange={e => setEditingTitle(e.target.value)} 
+                    size={Math.max(video.title.length, 10)}
+                    className="title-edit-input"
+                  />
+                  <button className="btn btn-primary btn-sm" onClick={() => {
+                      updateVideo(video.id, { title: editingTitle });
+                      setIsEditingTitle(false);
+                  }}>Save</button>
                 </div>
-                {editingNotes[section.id] ? (
-                  <div style={{ display: 'flex', gap: '4px' }}>
-                    <textarea 
-                      value={notes[section.id] ?? section.note ?? ""} 
-                      onChange={e => {
-                        setNotes(prev => ({...prev, [section.id]: e.target.value}));
-                        e.target.style.height = 'auto';
-                        e.target.style.height = e.target.scrollHeight + 'px';
-                      }}
-                      placeholder="Add note..."
-                      style={{ 
-                        resize: 'none', 
-                        overflow: 'hidden', 
-                        minHeight: '1.5em',
-                        fontFamily: 'inherit',
-                        padding: 'var(--spacing-xs)',
-                        flexGrow: 1
-                      }}
+              ) : (
+                <h2 className="video-details-title" onClick={() => {
+                  setEditingTitle(video.title);
+                  setIsEditingTitle(true);
+                }}>
+                  {video.title} <span className="edit-icon">✏️</span>
+                </h2>
+              )}
+            </div>
+            
+            <div className="details-actions-row">
+              <div className="tags-section">
+                {isEditingTags ? (
+                  <div className="tags-edit-container">
+                    <TagsInput
+                      value={video.labels}
+                      onChange={(newTags) => updateVideo(video.id, { labels: newTags })}
+                      onEnter={() => setIsEditingTags(false)}
                     />
-                    <button className="btn btn-secondary" onClick={() => {
-                        const updatedSections = video.sections.map(s => s.id === section.id ? {...s, note: notes[section.id] ?? section.note} : s);
-                        updateVideo(video.id, { sections: updatedSections });
-                        setEditingNotes(prev => ({...prev, [section.id]: false}));
-                    }}>Save</button>
+                    <button className="btn btn-secondary btn-sm" onClick={() => setIsEditingTags(false)}>Done</button>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
-                    <button className="btn btn-secondary" onClick={() => {
-                      setNotes(prev => ({...prev, [section.id]: section.note ?? ""}));
-                      setEditingNotes(prev => ({...prev, [section.id]: true}));
-                    }}>Edit</button>
-                    <button className="btn btn-danger" onClick={() => {
-                      const updatedSections = video.sections.filter(s => s.id !== section.id);
-                      updateVideo(video.id, { sections: updatedSections });
-                    }}>Delete</button>
+                  <div className="tags-list">
+                    {video.labels.map(label => (
+                      <span key={label} className="tag-pill">{label}</span>
+                    ))}
+                    <button className="btn btn-secondary btn-sm" onClick={() => setIsEditingTags(true)}>Edit Tags</button>
                   </div>
                 )}
               </div>
-            ))
-          )}
+              
+              <div className="actions-section">
+                <button className="btn btn-secondary" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                  {isSidebarOpen ? 'Hide Bookmarks' : 'Show Bookmarks'}
+                </button>
+                <button className="btn btn-danger" onClick={handleDelete}>
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
-      
-      <VideoPlaybackControls
-        player={player}
-        video={video}
-        mirrored={mirrored}
-        onMirroredChange={(m) => { setMirrored(m); updateVideo(video.id, { mirrored: m }); }}
 
-        showTapBpm={isEditingTitle}
-        onBpmChange={(bpm) => updateVideo(video.id, { bpm, countSeconds: 60 / bpm })}
-        onAddBookmark={(time) => {
-           const newSection = { id: `${Date.now()}`, label: `Bookmark ${time.toFixed(1)}s`, start: time, end: time };
-           const updatedSections = [...video.sections, newSection];
-           updateVideo(video.id, { sections: updatedSections });
-        }}
-      />
+        {/* Sidebar Column: Bookmarks (Responsive Grid-placement) */}
+        {isSidebarOpen && (
+          <div className="bookmark-sidebar">
+            <div className="sidebar-header">
+              <h3>Bookmarks ({video.sections.length})</h3>
+            </div>
+            <div className="bookmarks-scroll-container">
+              {video.sections.length === 0 ? (
+                <div className="empty-bookmarks">
+                  No bookmarks yet. Click "Bookmark" during playback to save moments.
+                </div>
+              ) : (
+                video.sections.sort((a, b) => a.start - b.start).map(section => (
+                  <div key={section.id} className="bookmark-card">
+                    <div className="bookmark-card-top">
+                      <button 
+                        className="bookmark-time-badge"
+                        onClick={() => player.seekTo(section.start)}
+                      >
+                        ⏱️ {section.start.toFixed(1)}s
+                      </button>
+                      <span className="bookmark-note">{section.note || "No notes added"}</span>
+                    </div>
+                    {editingNotes[section.id] ? (
+                      <div className="bookmark-edit-row">
+                        <textarea 
+                          value={notes[section.id] ?? section.note ?? ""} 
+                          onChange={e => {
+                            setNotes(prev => ({...prev, [section.id]: e.target.value}));
+                            e.target.style.height = 'auto';
+                            e.target.style.height = e.target.scrollHeight + 'px';
+                          }}
+                          placeholder="Write a note about this move..."
+                          className="bookmark-textarea"
+                        />
+                        <div className="bookmark-edit-actions">
+                          <button className="btn btn-primary btn-sm" onClick={() => {
+                              const updatedSections = video.sections.map(s => s.id === section.id ? {...s, note: notes[section.id] ?? section.note} : s);
+                              updateVideo(video.id, { sections: updatedSections });
+                              setEditingNotes(prev => ({...prev, [section.id]: false}));
+                          }}>Save</button>
+                          <button className="btn btn-secondary btn-sm" onClick={() => {
+                              setEditingNotes(prev => ({...prev, [section.id]: false}));
+                          }}>Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bookmark-actions-row">
+                        <button className="btn btn-secondary btn-sm" onClick={() => {
+                          setNotes(prev => ({...prev, [section.id]: section.note ?? ""}));
+                          setEditingNotes(prev => ({...prev, [section.id]: true}));
+                        }}>Edit Note</button>
+                        <button className="btn btn-danger btn-sm" onClick={() => {
+                          const updatedSections = video.sections.filter(s => s.id !== section.id);
+                          updateVideo(video.id, { sections: updatedSections });
+                        }}>Remove</button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+        
+      </div>
     </div>
   );
 }
