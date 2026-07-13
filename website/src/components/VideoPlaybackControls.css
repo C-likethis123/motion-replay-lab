@@ -1,8 +1,7 @@
 .playback-controls {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-md);
+  gap: var(--spacing-sm);
   padding: var(--spacing-md);
   background-color: var(--color-surface);
   border-radius: var(--radius-lg);
@@ -50,10 +49,9 @@
 }
 
 .bottom-controls {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: center;
   gap: var(--spacing-sm) var(--spacing-md);
   padding: var(--spacing-sm);
   background-color: var(--color-app-background);
@@ -70,7 +68,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: var(--spacing-sm);
 }
 
@@ -79,6 +77,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--spacing-sm);
+  grid-column: 1 / -1;
 }
 
 .mirror-toggle {
@@ -99,6 +98,8 @@
   background-color: var(--color-border);
   border: none;
   cursor: pointer;
+  min-height: 32px;
+  min-width: 42px;
 }
 
 .speed-button.active {
@@ -115,6 +116,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 36px;
+  min-width: 36px;
+  white-space: nowrap;
 }
 
 .bookmark-button {
@@ -122,22 +126,56 @@
 }
 
 @media (max-width: 767px) {
+  .playback-controls {
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-md);
+  }
+
+  .time-display {
+    font-size: var(--font-size-xxs);
+  }
+
   .bottom-controls {
-    gap: var(--spacing-md);
-    padding: var(--spacing-md);
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
   }
 
   .mirror-speed-group {
-    justify-content: center;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
     gap: var(--spacing-sm);
   }
 
   .controls-group {
     width: 100%;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: var(--spacing-xs);
+  }
+
+  .bookmark-button {
+    grid-column: 1 / -1;
   }
 
   .additional-controls {
     justify-content: center;
+  }
+
+  .speed-controls {
+    justify-content: end;
+    min-width: 0;
+  }
+
+  .speed-button,
+  .playback-button {
+    padding: var(--spacing-xs);
+    min-height: 34px;
+    min-width: 0;
+    font-size: var(--font-size-xxs);
+  }
+
+  .bookmark-button {
+    min-height: 36px;
   }
 }

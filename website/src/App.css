@@ -9,6 +9,12 @@
   flex-direction: column;
 }
 
+@media (max-width: 767px) {
+  .app-container {
+    padding: var(--spacing-md);
+  }
+}
+
 .header {
   display: flex;
   justify-content: space-between;

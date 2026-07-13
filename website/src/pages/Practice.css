@@ -55,7 +55,7 @@
 
 .practice-player-container {
   width: 100%;
-  max-height: 70vh;
+  height: min(70svh, 720px);
   background-color: var(--color-video-chrome);
   border-radius: var(--radius-xl);
   overflow: hidden;
@@ -64,6 +64,12 @@
   justify-content: center;
   border: 1px solid var(--color-video-chrome-border);
   box-shadow: var(--shadow-card);
+}
+
+.practice-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .video-details-title {
@@ -175,6 +181,62 @@
   gap: var(--spacing-sm);
   justify-content: flex-end;
   flex-wrap: wrap;
+}
+
+@media (max-width: 767px) {
+  .practice-main-content {
+    gap: var(--spacing-sm);
+  }
+
+  .practice-title-bar {
+    order: 3;
+  }
+
+  .practice-player-container {
+    order: 1;
+  }
+
+  .practice-main-content > .playback-controls {
+    order: 2;
+  }
+
+  .practice-layout-grid {
+    gap: var(--spacing-md);
+  }
+
+  .practice-player-container {
+    height: min(58svh, 620px);
+    border-radius: var(--radius-md);
+  }
+
+  .details-actions-row {
+    padding: var(--spacing-md);
+    gap: var(--spacing-sm);
+  }
+
+  .video-details-title {
+    font-size: var(--font-size-lg);
+  }
+
+  .title-edit-container,
+  .tags-edit-container {
+    grid-template-columns: 1fr;
+  }
+
+  .title-edit-container {
+    flex-direction: column;
+  }
+
+  .title-edit-container,
+  .actions-section {
+    align-items: stretch;
+  }
+
+  .actions-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    justify-content: stretch;
+  }
 }
 
 /* Sidebar styling */

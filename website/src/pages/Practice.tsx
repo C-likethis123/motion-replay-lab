@@ -147,7 +147,8 @@ export default function Practice() {
               src={video.sourceUri}
               preload="auto"
               playsInline
-              style={{ transform: mirrored ? 'scaleX(-1)' : 'none', width: '100%', height: 'auto', maxHeight: '100%', objectFit: 'contain' }}
+              className="practice-video"
+              style={{ transform: mirrored ? 'scaleX(-1)' : 'none' }}
             />
           </div>
           
