@@ -183,27 +183,29 @@ export default function Dashboard() {
 
             return (
               <div key={video.id} className="video-card">
-                <div className="thumbnail-container">
-                  {video.thumbnailUri ? (
-                    <img src={video.thumbnailUri} alt={video.title} className="thumbnail-img" />
-                  ) : (
-                    <div className="thumbnail-placeholder">🎬</div>
-                  )}
-                </div>
-                
-                <div className="video-info">
-                  <h3 className="video-title">{video.title}</h3>
+                <div className="video-card-main">
+                  <div className="thumbnail-container">
+                    {video.thumbnailUri ? (
+                      <img src={video.thumbnailUri} alt={video.title} className="thumbnail-img" />
+                    ) : (
+                      <div className="thumbnail-placeholder">🎬</div>
+                    )}
+                  </div>
+
+                  <div className="video-info">
+                    <h3 className="video-title">{video.title}</h3>
 
 
-                  {video.labels && video.labels.length > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--spacing-xs)", marginTop: "var(--spacing-xs)" }}>
-                      {video.labels.map((label) => (
-                        <span key={label} className="pill" style={{ padding: "2px var(--spacing-sm)", fontSize: "var(--font-size-xs)" }}>
-                          {label}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                    {video.labels && video.labels.length > 0 && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--spacing-xs)", marginTop: "var(--spacing-xs)" }}>
+                        {video.labels.map((label) => (
+                          <span key={label} className="pill" style={{ padding: "2px var(--spacing-sm)", fontSize: "var(--font-size-xs)" }}>
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="video-actions">
