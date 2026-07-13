@@ -141,6 +141,18 @@
   flex-wrap: wrap;
 }
 
+.tags-edit-container {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--spacing-sm);
+  width: 100%;
+}
+
+.tags-edit-container .tags-input-container {
+  min-width: 0;
+}
+
 .tags-list {
   display: flex;
   align-items: center;
