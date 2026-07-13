@@ -5,10 +5,9 @@ import "./TagsInput.css";
 type TagsInputProps = {
   value: string[];
   onChange: (tags: string[]) => void;
-  onEnter?: (tags: string[]) => void;
 };
 
-export function TagsInput({ value, onChange, onEnter }: TagsInputProps) {
+export function TagsInput({ value, onChange }: TagsInputProps) {
   const [inputValue, setInputValue] = useState("");
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -18,9 +17,6 @@ export function TagsInput({ value, onChange, onEnter }: TagsInputProps) {
       if (newTag && !value.includes(newTag)) {
         const nextTags = [...value, newTag];
         onChange(nextTags);
-        if (e.key === "Enter" && onEnter) {
-          onEnter(nextTags);
-        }
         setInputValue("");
       }
     } else if (e.key === "Backspace" && !inputValue && value.length > 0) {

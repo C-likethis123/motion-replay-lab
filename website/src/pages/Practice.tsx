@@ -83,6 +83,64 @@ export default function Practice() {
         
         {/* Main Column: Player, Controls, and details */}
         <div className="practice-main-content">
+          <div className="practice-title-bar">
+            <div className="details-actions-row">
+              <div className="practice-title-and-tags">
+                <div className="practice-title-content">
+                  {isEditingTitle ? (
+                    <div className="title-edit-container">
+                      <input 
+                        value={editingTitle} 
+                        onChange={e => setEditingTitle(e.target.value)} 
+                        size={Math.max(video.title.length, 10)}
+                        className="title-edit-input"
+                      />
+                      <button className="btn btn-primary btn-sm" onClick={() => {
+                          updateVideo(video.id, { title: editingTitle });
+                          setIsEditingTitle(false);
+                      }}>Save</button>
+                    </div>
+                  ) : (
+                    <h2 className="video-details-title" onClick={() => {
+                      setEditingTitle(video.title);
+                      setIsEditingTitle(true);
+                    }}>
+                      {video.title} <span className="edit-icon">✏️</span>
+                    </h2>
+                  )}
+                </div>
+
+                <div className="tags-section">
+                  {isEditingTags ? (
+                    <div className="tags-edit-container">
+                      <TagsInput
+                        value={video.labels}
+                        onChange={(newTags) => updateVideo(video.id, { labels: newTags })}
+                      />
+                      <button className="btn btn-secondary btn-sm" onClick={() => setIsEditingTags(false)}>Done</button>
+                    </div>
+                  ) : (
+                    <div className="tags-list">
+                      {video.labels.map(label => (
+                        <span key={label} className="tag-pill">{label}</span>
+                      ))}
+                      <button className="btn btn-secondary btn-sm" onClick={() => setIsEditingTags(true)}>Edit Tags</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="actions-section">
+                <button className="btn btn-secondary" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                  {isSidebarOpen ? 'Hide Bookmarks' : 'Show Bookmarks'}
+                </button>
+                <button className="btn btn-danger" onClick={handleDelete}>
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div className="practice-player-container">
             <video
               ref={setVideoNode}
@@ -107,62 +165,6 @@ export default function Practice() {
             }}
           />
 
-          <div className="practice-details-card">
-            <div className="details-header-row">
-              {isEditingTitle ? (
-                <div className="title-edit-container">
-                  <input 
-                    value={editingTitle} 
-                    onChange={e => setEditingTitle(e.target.value)} 
-                    size={Math.max(video.title.length, 10)}
-                    className="title-edit-input"
-                  />
-                  <button className="btn btn-primary btn-sm" onClick={() => {
-                      updateVideo(video.id, { title: editingTitle });
-                      setIsEditingTitle(false);
-                  }}>Save</button>
-                </div>
-              ) : (
-                <h2 className="video-details-title" onClick={() => {
-                  setEditingTitle(video.title);
-                  setIsEditingTitle(true);
-                }}>
-                  {video.title} <span className="edit-icon">✏️</span>
-                </h2>
-              )}
-            </div>
-            
-            <div className="details-actions-row">
-              <div className="tags-section">
-                {isEditingTags ? (
-                  <div className="tags-edit-container">
-                    <TagsInput
-                      value={video.labels}
-                      onChange={(newTags) => updateVideo(video.id, { labels: newTags })}
-                      onEnter={() => setIsEditingTags(false)}
-                    />
-                    <button className="btn btn-secondary btn-sm" onClick={() => setIsEditingTags(false)}>Done</button>
-                  </div>
-                ) : (
-                  <div className="tags-list">
-                    {video.labels.map(label => (
-                      <span key={label} className="tag-pill">{label}</span>
-                    ))}
-                    <button className="btn btn-secondary btn-sm" onClick={() => setIsEditingTags(true)}>Edit Tags</button>
-                  </div>
-                )}
-              </div>
-              
-              <div className="actions-section">
-                <button className="btn btn-secondary" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-                  {isSidebarOpen ? 'Hide Bookmarks' : 'Show Bookmarks'}
-                </button>
-                <button className="btn btn-danger" onClick={handleDelete}>
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Sidebar Column: Bookmarks (Responsive Grid-placement) */}
