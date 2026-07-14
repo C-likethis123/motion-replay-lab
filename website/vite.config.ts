@@ -5,4 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   base: '/motion-replay-lab/',
   plugins: [react()],
+  server: {
+    allowedHosts: ['.ts.net'],
+  },
 })

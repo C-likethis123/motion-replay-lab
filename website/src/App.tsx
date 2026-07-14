@@ -4,6 +4,7 @@ import "./App.css";
 
 import Dashboard from "./pages/Dashboard";
 import Practice from "./pages/Practice";
+import SyncSpike from "./pages/SyncSpike";
 import { VideosProvider } from "./lib/videos";
 
 function Layout({ children }: { children: React.ReactNode }) {
@@ -12,6 +13,9 @@ function Layout({ children }: { children: React.ReactNode }) {
       <header className="header" style={{ borderRadius: "var(--radius-sm)", marginBottom: "var(--spacing-md)" }}>
         <Link to="/" className="logo">
           <span>💃</span> Motion Replay Lab
+        </Link>
+        <Link to="/sync-spike" className="nav-link">
+          Sync Spike
         </Link>
 
       </header>
@@ -40,6 +44,14 @@ export default function App() {
             element={
               <Layout>
                 <Practice />
+              </Layout>
+            }
+          />
+          <Route
+            path="/sync-spike"
+            element={
+              <Layout>
+                <SyncSpike />
               </Layout>
             }
           />
