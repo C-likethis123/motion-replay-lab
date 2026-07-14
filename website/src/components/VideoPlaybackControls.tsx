@@ -73,11 +73,16 @@ export const VideoPlaybackControls = memo(function VideoPlaybackControls({
 
       <div className="bottom-controls">
         <div className="mirror-speed-group">
-          <div className="mirror-toggle">
+          <label className="mirror-toggle">
             <FlipHorizontal size={18} />
             <span>Mirror</span>
-            <input type="checkbox" checked={mirrored} onChange={(e) => onMirroredChange(e.target.checked)} />
-          </div>
+            <input
+              type="checkbox"
+              checked={mirrored}
+              onChange={(e) => onMirroredChange(e.target.checked)}
+              aria-label="Mirror video"
+            />
+          </label>
 
           <div className="speed-controls">
             {[0.25, 0.5, 0.75, 1].map((speed) => (
@@ -85,6 +90,7 @@ export const VideoPlaybackControls = memo(function VideoPlaybackControls({
                 key={speed}
                 className={`speed-button ${player.playbackRate === speed ? "active" : ""}`}
                 onClick={() => player.setRate(speed)}
+                aria-pressed={player.playbackRate === speed}
               >
                 {speed}x
               </button>
@@ -93,13 +99,13 @@ export const VideoPlaybackControls = memo(function VideoPlaybackControls({
         </div>
 
         <div className="controls-group">
-          <button className="playback-button" onClick={() => jumpCounts(-8)} disabled={!video.countSeconds}>« 8</button>
-          <button className="playback-button" onClick={() => jumpCounts(-1)} disabled={!video.countSeconds}>« 1</button>
-          <button className="playback-button" onClick={togglePlay}>
+          <button className="playback-button count-button" onClick={() => jumpCounts(-8)} disabled={!video.countSeconds} aria-label="Back 8 counts">-8</button>
+          <button className="playback-button count-button" onClick={() => jumpCounts(-1)} disabled={!video.countSeconds} aria-label="Back 1 count">-1</button>
+          <button className="playback-button play-toggle-button" onClick={togglePlay} aria-label={isPlaying ? "Pause" : "Play"}>
             {isPlaying ? <Pause size={20} /> : <Play size={20} />}
           </button>
-          <button className="playback-button" onClick={() => jumpCounts(1)} disabled={!video.countSeconds}>1 »</button>
-          <button className="playback-button" onClick={() => jumpCounts(8)} disabled={!video.countSeconds}>8 »</button>
+          <button className="playback-button count-button" onClick={() => jumpCounts(1)} disabled={!video.countSeconds} aria-label="Forward 1 count">+1</button>
+          <button className="playback-button count-button" onClick={() => jumpCounts(8)} disabled={!video.countSeconds} aria-label="Forward 8 counts">+8</button>
           <button className="playback-button bookmark-button" onClick={() => onAddBookmark(currentTime)}>
             <Bookmark size={16} />
             <span>Bookmark</span>
