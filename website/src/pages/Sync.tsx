@@ -7,7 +7,7 @@ import {
   PairingConnection,
   type PairingState,
 } from "../lib/sync/pairing";
-import "./SyncSpike.css";
+import "./Sync.css";
 
 const initialState: PairingState = {
   role: null,
@@ -165,8 +165,8 @@ export default function Sync() {
   }, []);
 
   return (
-    <div className="sync-spike">
-      <div className="sync-spike-header">
+    <div className="sync-page">
+      <div className="sync-header">
         <div>
           <p className="sync-kicker">Phase 2</p>
           <h1>Local Sync Pairing</h1>

@@ -141,6 +141,7 @@ export class PairingConnection {
   private codeRef: DocumentReference | null = null;
   private unsubscribers: Unsubscribe[] = [];
   private hasStartedConnection = false;
+  private hasAnsweredOffer = false;
 
   subscribe(listener: Listener) {
     this.listeners.add(listener);
@@ -269,11 +270,17 @@ export class PairingConnection {
           void this.startConnection(data).catch((error) => this.fail(error));
         }
 
-        if (!isCreator && data.offer && !this.pc?.remoteDescription) {
+        if (!isCreator && data.offer && !this.hasAnsweredOffer) {
           void this.answerOffer(data.offer).catch((error) => this.fail(error));
         }
 
-        if (isCreator && data.answer && this.pc && !this.pc.remoteDescription) {
+        if (
+          isCreator &&
+          data.answer &&
+          this.pc &&
+          !this.pc.remoteDescription &&
+          this.pc.signalingState === "have-local-offer"
+        ) {
           void this.pc.setRemoteDescription(data.answer).catch((error) => this.fail(error));
         }
       })
@@ -298,10 +305,13 @@ export class PairingConnection {
   }
 
   private async answerOffer(offer: RTCSessionDescriptionInit) {
+    if (this.hasAnsweredOffer) return;
+    this.hasAnsweredOffer = true;
     if (!this.pc) {
       this.patch({ status: "connecting" });
       this.startPeer();
     }
+    if (this.pc!.signalingState !== "stable") return;
     await this.pc!.setRemoteDescription(offer);
     const answer = await this.pc!.createAnswer();
     await this.pc!.setLocalDescription(answer);
@@ -325,7 +335,7 @@ export class PairingConnection {
       const status = this.pc?.connectionState;
       if (status === "connected" && this.pc) {
         const pair = await selectedCandidatePair(this.pc);
-        this.patch({ status: "connected", selectedCandidatePair: pair });
+        this.patch({ status: "connected", selectedCandidatePair: pair, error: null });
         await deleteDoc(this.codeRef!).catch(() => undefined);
       } else if (status === "failed" || status === "disconnected") {
         this.patch({ status: "failed" });
