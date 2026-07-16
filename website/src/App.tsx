@@ -4,6 +4,7 @@ import "./App.css";
 
 import Dashboard from "./pages/Dashboard";
 import Practice from "./pages/Practice";
+import Sync from "./pages/Sync";
 import SyncSpike from "./pages/SyncSpike";
 import { VideosProvider } from "./lib/videos";
 
@@ -16,6 +17,9 @@ function Layout({ children }: { children: React.ReactNode }) {
         </Link>
         <Link to="/sync-spike" className="nav-link">
           Sync Spike
+        </Link>
+        <Link to="/sync" className="nav-link">
+          Sync
         </Link>
 
       </header>
@@ -44,6 +48,14 @@ export default function App() {
             element={
               <Layout>
                 <Practice />
+              </Layout>
+            }
+          />
+          <Route
+            path="/sync"
+            element={
+              <Layout>
+                <Sync />
               </Layout>
             }
           />

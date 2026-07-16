@@ -10,6 +10,7 @@ import React, {
 } from "react";
 import { db, type VideoMetadata, type PracticeSection, type BpmSource, type BpmDetectionStatus, type VideoThumbnailSource } from "./db";
 import { estimateBpm, deriveDetectedBpmTiming } from "./bpm";
+import { cleanupAbandonedTransfers, dataUrlToBlob, getOrCreateDevice, sha256Blob } from "./sync/storage";
 
 export type DanceVideo = {
   id: string;
@@ -46,12 +47,14 @@ export function VideosProvider({ children }: { children: ReactNode }) {
   const [videos, setVideos] = useState<DanceVideo[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const objectUrlsRef = useRef<Record<string, string>>({});
+  const thumbnailUrlsRef = useRef<Record<string, string>>({});
   const detectionQueue = useRef<string[]>([]);
   const processingDetection = useRef(false);
 
   // Clean up object URLs on unmount
   useEffect(() => {
     const urls = objectUrlsRef.current;
+    const thumbnailUrls = thumbnailUrlsRef.current;
     return () => {
       Object.values(urls).forEach((url) => {
         try {
@@ -60,12 +63,28 @@ export function VideosProvider({ children }: { children: ReactNode }) {
           console.error("Failed to revoke URL on unmount:", e);
         }
       });
+      Object.values(thumbnailUrls).forEach((url) => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch (e) {
+          console.error("Failed to revoke thumbnail URL on unmount:", e);
+        }
+      });
     };
   }, []);
 
   const updateVideo = useCallback(async (id: string, updates: Partial<VideoInput>) => {
     console.log("Updating video:", id, "with:", updates);
-    await db.videos.update(id, updates);
+    const existing = await db.videos.get(id);
+    const device = await getOrCreateDevice();
+    await db.videos.update(id, {
+      ...updates,
+      revision: {
+        counter: (existing?.revision.counter ?? 0) + 1,
+        deviceId: device.deviceId,
+      },
+      updatedAt: Date.now(),
+    });
     const updatedMeta = await db.videos.get(id);
     console.log("Meta after update:", updatedMeta);
 
@@ -118,20 +137,50 @@ export function VideosProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addVideo = useCallback(async (video: VideoInput, file: Blob | File) => {
-    const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const id = crypto.randomUUID();
+    const device = await getOrCreateDevice();
+    const mediaHash = await sha256Blob(file);
+    const thumbnailBlob = video.thumbnailUri ? await dataUrlToBlob(video.thumbnailUri) : null;
+    const thumbnailHash = thumbnailBlob ? await sha256Blob(thumbnailBlob) : null;
     const url = URL.createObjectURL(file);
     objectUrlsRef.current[id] = url;
+    let thumbnailUri: string | null = null;
+
+    if (thumbnailBlob) {
+      thumbnailUri = URL.createObjectURL(thumbnailBlob);
+      thumbnailUrlsRef.current[id] = thumbnailUri;
+    }
 
     const metadata: VideoMetadata = {
       ...video,
       id,
+      thumbnailUri,
       sections: video.sections.length > 0 ? video.sections : [],
       bpmDetectionStatus: "detecting",
+      media: {
+        fileName: file instanceof File ? file.name : video.title,
+        mimeType: file.type || "application/octet-stream",
+        byteLength: file.size,
+        sha256: mediaHash,
+      },
+      thumbnail: thumbnailBlob ? {
+        mimeType: thumbnailBlob.type || "image/jpeg",
+        byteLength: thumbnailBlob.size,
+        sha256: thumbnailHash,
+      } : undefined,
+      revision: {
+        counter: 1,
+        deviceId: device.deviceId,
+      },
+      updatedAt: Date.now(),
     };
 
-    await db.transaction("rw", [db.videos, db.videoBlobs], async () => {
+    await db.transaction("rw", [db.videos, db.videoBlobs, db.thumbnailBlobs], async () => {
       await db.videos.add(metadata);
       await db.videoBlobs.add({ id, blob: file });
+      if (thumbnailBlob) {
+        await db.thumbnailBlobs.add({ id, blob: thumbnailBlob });
+      }
     });
 
     setVideos((current) => [
@@ -151,17 +200,30 @@ export function VideosProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function loadVideos() {
       try {
+        await getOrCreateDevice();
+        await cleanupAbandonedTransfers();
         const metadataList = await db.videos.toArray();
         const loadedVideos: DanceVideo[] = [];
 
         for (const meta of metadataList) {
+          if (meta.deletedAt) {
+            continue;
+          }
           console.log("Loaded meta:", meta);
           const blobRecord = await db.videoBlobs.get(meta.id);
+          const thumbnailRecord = await db.thumbnailBlobs.get(meta.id);
+          const thumbnailUri = thumbnailRecord
+            ? URL.createObjectURL(thumbnailRecord.blob)
+            : meta.thumbnailUri;
+          if (thumbnailRecord && thumbnailUri) {
+            thumbnailUrlsRef.current[meta.id] = thumbnailUri;
+          }
           if (blobRecord) {
             const url = URL.createObjectURL(blobRecord.blob);
             objectUrlsRef.current[meta.id] = url;
             loadedVideos.push({
               ...meta,
+              thumbnailUri,
               sourceUri: url,
             });
             if (meta.bpmDetectionStatus === "detecting") {
@@ -170,6 +232,7 @@ export function VideosProvider({ children }: { children: ReactNode }) {
           } else {
             loadedVideos.push({
               ...meta,
+              thumbnailUri,
               sourceUri: "",
             });
           }
@@ -197,10 +260,29 @@ export function VideosProvider({ children }: { children: ReactNode }) {
       }
       delete objectUrlsRef.current[id];
     }
+    const thumbnailUrl = thumbnailUrlsRef.current[id];
+    if (thumbnailUrl) {
+      try {
+        URL.revokeObjectURL(thumbnailUrl);
+      } catch (e) {
+        console.error("Failed to revoke thumbnail URL for delete:", e);
+      }
+      delete thumbnailUrlsRef.current[id];
+    }
 
-    await db.transaction("rw", [db.videos, db.videoBlobs], async () => {
-      await db.videos.delete(id);
+    const existing = await db.videos.get(id);
+    const device = await getOrCreateDevice();
+    await db.transaction("rw", [db.videos, db.videoBlobs, db.thumbnailBlobs], async () => {
+      await db.videos.update(id, {
+        deletedAt: Date.now(),
+        revision: {
+          counter: (existing?.revision.counter ?? 0) + 1,
+          deviceId: device.deviceId,
+        },
+        updatedAt: Date.now(),
+      });
       await db.videoBlobs.delete(id);
+      await db.thumbnailBlobs.delete(id);
     });
 
     setVideos((current) => current.filter((item) => item.id !== id));

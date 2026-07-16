@@ -126,6 +126,22 @@
   color: var(--color-accent-text);
 }
 
+.sync-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.sync-input:focus {
+  border-color: var(--color-accent-border);
+  outline: none;
+}
+
 .sync-metrics {
   flex-wrap: wrap;
   gap: var(--spacing-md);
