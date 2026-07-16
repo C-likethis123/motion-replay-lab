@@ -37,6 +37,31 @@ function pairingFromValue(value: string) {
   }
 }
 
+function isIpadLike() {
+  const platform = navigator.platform.toLowerCase();
+  const userAgent = navigator.userAgent.toLowerCase();
+  return userAgent.includes("ipad") || (platform === "macintel" && navigator.maxTouchPoints > 1);
+}
+
+function getPairingDeviceMode() {
+  if (isIpadLike()) return "create";
+  if (window.matchMedia("(max-width: 767px)").matches && navigator.maxTouchPoints > 0) return "join";
+  return "create";
+}
+
+function usePairingDeviceMode() {
+  const [mode, setMode] = useState<"create" | "join">(() => getPairingDeviceMode());
+
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 767px)");
+    const updateMode = () => setMode(getPairingDeviceMode());
+    query.addEventListener("change", updateMode);
+    return () => query.removeEventListener("change", updateMode);
+  }, []);
+
+  return mode;
+}
+
 function PairingQr({ code, secret }: { code: string; secret: string }) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
@@ -140,6 +165,7 @@ export default function Sync() {
   const [secret, setSecret] = useState(() => new URLSearchParams(window.location.search).get("syncSecret") ?? "");
   const [error, setError] = useState<string | null>(null);
   const support = useMemo(() => getBrowserPairingSupport(), []);
+  const pairingMode = usePairingDeviceMode();
 
   useEffect(() => {
     const unsubscribe = connection.current.subscribe(setState);
@@ -159,8 +185,6 @@ export default function Sync() {
 
   const handleQrScan = useCallback((value: string) => {
     const pairing = pairingFromValue(value);
-    setCode(pairing.code);
-    setSecret(pairing.secret);
     void run(() => connection.current.join(pairing.code, pairing.secret));
   }, []);
 
@@ -182,29 +206,33 @@ export default function Sync() {
       )}
 
       <div className="sync-grid">
-        <section className="sync-panel">
-          <h2>Create</h2>
-          <button className="btn btn-primary" disabled={!support.supported} onClick={() => run(() => connection.current.create())}>
-            <Plus size={18} />
-            <span>Create Session</span>
-          </button>
-          {state.pairingCode && state.pairingSecret && (
-            <PairingQr code={state.pairingCode} secret={state.pairingSecret} />
-          )}
-        </section>
+        {pairingMode === "create" && (
+          <section className="sync-panel">
+            <h2>Create QR</h2>
+            <button className="btn btn-primary" disabled={!support.supported} onClick={() => run(() => connection.current.create())}>
+              <Plus size={18} />
+              <span>Create Session</span>
+            </button>
+            {state.pairingCode && state.pairingSecret && (
+              <PairingQr code={state.pairingCode} secret={state.pairingSecret} />
+            )}
+          </section>
+        )}
 
-        <section className="sync-panel">
-          <h2>Join</h2>
-          <div className="sync-actions">
-            <QrScanner onScan={handleQrScan} onError={setError} />
-          </div>
-          <input className="sync-input" value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="Pairing code" />
-          <input className="sync-input" value={secret} onChange={(event) => setSecret(event.target.value)} placeholder="Pairing secret" />
-          <button className="btn btn-primary" disabled={!support.supported || !code || !secret} onClick={() => run(() => connection.current.join(code, secret))}>
-            <Link2 size={18} />
-            <span>Join Session</span>
-          </button>
-        </section>
+        {pairingMode === "join" && (
+          <section className="sync-panel">
+            <h2>Join</h2>
+            <div className="sync-actions">
+              <QrScanner onScan={handleQrScan} onError={setError} />
+            </div>
+            <input className="sync-input" value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="Pairing code" />
+            <input className="sync-input" value={secret} onChange={(event) => setSecret(event.target.value)} placeholder="Pairing secret" />
+            <button className="btn btn-primary" disabled={!support.supported || !code || !secret} onClick={() => run(() => connection.current.join(code, secret))}>
+              <Link2 size={18} />
+              <span>Join Session</span>
+            </button>
+          </section>
+        )}
       </div>
 
       <section className="sync-panel">
