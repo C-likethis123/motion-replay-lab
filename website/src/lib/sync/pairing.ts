@@ -213,7 +213,7 @@ export class PairingConnection {
       creatorUid: client.auth.currentUser?.uid,
       creatorDeviceId: device.deviceId,
       creatorName: device.displayName,
-      creatorConfirmed: false,
+      creatorConfirmed: true,
       joinerConfirmed: false,
     });
     await setDoc(codeRef, {
@@ -231,6 +231,7 @@ export class PairingConnection {
       sessionId: sessionRef.id,
       pairingCode: code,
       pairingSecret: secret,
+      localConfirmed: true,
       error: null,
     });
     this.watchSession();
@@ -264,7 +265,7 @@ export class PairingConnection {
       joinerUid: client.auth.currentUser?.uid,
       joinerDeviceId: device.deviceId,
       joinerName: device.displayName,
-      joinerConfirmed: false,
+      joinerConfirmed: true,
     });
 
     this.sessionRef = sessionRef;
@@ -276,6 +277,7 @@ export class PairingConnection {
       pairingCode: code,
       pairingSecret: secret,
       peerName: session.creatorName ?? "Peer browser",
+      localConfirmed: true,
       error: null,
     });
     this.watchSession();

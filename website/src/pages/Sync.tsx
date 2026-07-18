@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { toDataURL } from "qrcode";
-import { Camera, Check, Plus, X } from "lucide-react";
+import { Camera, Plus, X } from "lucide-react";
 import {
   getBrowserPairingSupport,
   PairingConnection,
@@ -310,7 +310,7 @@ export default function Sync() {
 
       {state.role && (
         <section className="sync-panel">
-          <h2>Confirm Peer</h2>
+          <h2>Connection</h2>
           <div className="sync-metrics">
             <span>Peer: {state.peerName ?? "-"}</span>
             <span>You: {state.localConfirmed ? "confirmed" : "waiting"}</span>
@@ -320,10 +320,6 @@ export default function Sync() {
             <span>ICE: {state.selectedCandidatePair ?? "-"}</span>
           </div>
           <div className="sync-actions">
-            <button className="btn btn-primary" disabled={!state.peerName || state.localConfirmed} onClick={() => run(() => connection.current.confirm())}>
-              <Check size={18} />
-              <span>Confirm</span>
-            </button>
             <button className="btn btn-danger" onClick={() => run(() => connection.current.cancel())}>
               <X size={18} />
               <span>Cancel</span>
