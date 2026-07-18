@@ -164,6 +164,8 @@ function QrScanner({ onScan, onError }: { onScan: (value: string) => void; onErr
 export default function Sync() {
   const connection = useRef(new PairingConnection());
   const autoJoinAttempted = useRef(false);
+  const autoManifestAttempted = useRef(false);
+  const autoSyncKey = useRef<string | null>(null);
   const manifestSent = useRef(false);
   const transferEngine = useRef<SyncTransferEngine | null>(null);
   const [state, setState] = useState<PairingState>(initialState);
@@ -172,7 +174,6 @@ export default function Sync() {
   const [error, setError] = useState<string | null>(null);
   const [localManifest, setLocalManifest] = useState<SyncManifestEntry[] | null>(null);
   const [remoteManifest, setRemoteManifest] = useState<SyncManifestEntry[] | null>(null);
-  const [isExchanging, setIsExchanging] = useState(false);
   const [progress, setProgress] = useState<SyncTransferProgress | null>(null);
   const support = useMemo(() => getBrowserPairingSupport(), []);
   const pairingMode = usePairingDeviceMode();
@@ -246,14 +247,6 @@ export default function Sync() {
     void run(() => connection.current.join(pairing.code, pairing.secret));
   }, []);
 
-  const exchangeManifests = useCallback(() => {
-    setError(null);
-    setIsExchanging(true);
-    void sendManifest()
-      .catch((caught) => setError(caught instanceof Error ? caught.message : String(caught)))
-      .finally(() => setIsExchanging(false));
-  }, [sendManifest]);
-
   const comparison = useMemo<SyncComparisonItem[]>(() => {
     if (!localManifest || !remoteManifest) return [];
     return compareSyncManifests(localManifest, remoteManifest);
@@ -266,11 +259,27 @@ export default function Sync() {
     transferEngine.current?.requestVideos(ids);
   }, [comparison]);
 
+  useEffect(() => {
+    if (!state.controlOpen || autoManifestAttempted.current) return;
+    autoManifestAttempted.current = true;
+    void sendManifest().catch((caught) => {
+      setError(caught instanceof Error ? caught.message : String(caught));
+    });
+  }, [sendManifest, state.controlOpen]);
+
+  useEffect(() => {
+    const ids = comparison.filter((item) => item.direction === "pull").map((item) => item.id);
+    if (ids.length === 0) return;
+    const syncKey = ids.sort().join(":");
+    if (autoSyncKey.current === syncKey) return;
+    autoSyncKey.current = syncKey;
+    requestChanges();
+  }, [comparison, requestChanges]);
+
   return (
     <div className="sync-page">
       <div className="sync-header">
         <div>
-          <p className="sync-kicker">Phase 3</p>
           <h1>Local Library Sync</h1>
         </div>
         <span className="sync-status">{state.status}</span>
@@ -332,12 +341,9 @@ export default function Sync() {
         <section className="sync-panel">
           <div className="sync-section-heading">
             <div>
-              <h2>Compare Libraries</h2>
-              <p>Video transfer comes next. This checks what each device has.</p>
+              <h2>Library Sync</h2>
+              <p>{localManifest && remoteManifest ? "Libraries compared." : "Checking peer library."}</p>
             </div>
-            <button className="btn btn-primary" disabled={isExchanging} onClick={exchangeManifests}>
-              <span>{isExchanging ? "Checking" : "Compare"}</span>
-            </button>
           </div>
 
           {localManifest && !remoteManifest && <p>Waiting for peer library.</p>}
@@ -353,11 +359,6 @@ export default function Sync() {
             </div>
           )}
           {localManifest && remoteManifest && comparison.length === 0 && <p>Both libraries are empty.</p>}
-          {comparison.some((item) => item.direction === "pull") && (
-            <button className="btn btn-primary" onClick={requestChanges}>
-              <span>Sync From Peer</span>
-            </button>
-          )}
           {progress && (
             <div className="sync-transfer-progress">
               <span>{progress.direction} {progress.kind}: {progress.title}</span>

@@ -1,7 +1,8 @@
 import { useMemo, useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Search, Plus, Play, Trash2 } from "lucide-react";
+import { Check, Edit3, Plus, Play, Search, Trash2, X } from "lucide-react";
 import { useVideos } from "../lib/videos";
+import { generateVideoThumbnail } from "../lib/videoThumbnails";
 import "./Dashboard.css";
 
 function titleFromFileName(name: string) {
@@ -13,47 +14,11 @@ function titleFromFileName(name: string) {
   );
 }
 
-function generateVideoThumbnail(file: Blob | File): Promise<string | null> {
-  return new Promise((resolve) => {
-    const video = document.createElement("video");
-    const objectUrl = URL.createObjectURL(file);
-    video.src = objectUrl;
-    video.muted = true;
-    video.playsInline = true;
-    video.currentTime = 0.1; // Seek slightly forward to avoid black frame
-
-    video.onseeked = () => {
-      try {
-        const canvas = document.createElement("canvas");
-        canvas.width = video.videoWidth || 320;
-        canvas.height = video.videoHeight || 180;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
-          resolve(dataUrl);
-        } else {
-          resolve(null);
-        }
-      } catch (e) {
-        console.error("Failed to generate thumbnail:", e);
-        resolve(null);
-      } finally {
-        URL.revokeObjectURL(objectUrl);
-      }
-    };
-
-    video.onerror = () => {
-      console.error("Error loading video for thumbnail generation");
-      URL.revokeObjectURL(objectUrl);
-      resolve(null);
-    };
-  });
-}
-
 export default function Dashboard() {
-  const { videos, addVideo, deleteVideo, isLoaded } = useVideos();
+  const { videos, addVideo, updateVideo, deleteVideo, isLoaded } = useVideos();
   const [query, setQuery] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredVideos = useMemo(() => {
@@ -110,6 +75,24 @@ export default function Dashboard() {
     if (confirm(`Are you sure you want to delete "${title}"?`)) {
       await deleteVideo(id);
     }
+  }
+
+  function startRename(id: string, title: string) {
+    setEditingId(id);
+    setEditingTitle(title);
+  }
+
+  async function saveRename(id: string) {
+    const title = editingTitle.trim();
+    if (!title) return;
+    await updateVideo(id, { title });
+    setEditingId(null);
+    setEditingTitle("");
+  }
+
+  function cancelRename() {
+    setEditingId(null);
+    setEditingTitle("");
   }
 
   return (
@@ -193,7 +176,36 @@ export default function Dashboard() {
                   </div>
 
                   <div className="video-info">
-                    <h3 className="video-title">{video.title}</h3>
+                    {editingId === video.id && (
+                      <form
+                        className="rename-form"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          void saveRename(video.id);
+                        }}
+                      >
+                        <input
+                          className="rename-input"
+                          value={editingTitle}
+                          onChange={(event) => setEditingTitle(event.target.value)}
+                          autoFocus
+                        />
+                        <button className="icon-btn" type="submit" title="Save title">
+                          <Check size={16} />
+                        </button>
+                        <button className="icon-btn" type="button" title="Cancel rename" onClick={cancelRename}>
+                          <X size={16} />
+                        </button>
+                      </form>
+                    )}
+                    {editingId !== video.id && (
+                      <div className="video-title-row">
+                        <h3 className="video-title">{video.title}</h3>
+                        <button className="icon-btn" type="button" title="Rename" onClick={() => startRename(video.id, video.title)}>
+                          <Edit3 size={16} />
+                        </button>
+                      </div>
+                    )}
 
 
                     {video.labels && video.labels.length > 0 && (

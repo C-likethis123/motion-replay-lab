@@ -11,6 +11,7 @@ import React, {
 import { db, type VideoMetadata, type PracticeSection, type BpmSource, type BpmDetectionStatus, type VideoThumbnailSource } from "./db";
 import { estimateBpm, deriveDetectedBpmTiming } from "./bpm";
 import { cleanupAbandonedTransfers, dataUrlToBlob, getOrCreateDevice, sha256Blob } from "./sync/storage";
+import { generateVideoThumbnail } from "./videoThumbnails";
 
 export type DanceVideo = {
   id: string;
@@ -211,27 +212,54 @@ export function VideosProvider({ children }: { children: ReactNode }) {
           }
           console.log("Loaded meta:", meta);
           const blobRecord = await db.videoBlobs.get(meta.id);
-          const thumbnailRecord = await db.thumbnailBlobs.get(meta.id);
+          let thumbnailRecord = await db.thumbnailBlobs.get(meta.id);
+          let loadedMeta = meta;
+          if (!thumbnailRecord && blobRecord) {
+            const thumbnailDataUrl = await generateVideoThumbnail(blobRecord.blob);
+            const thumbnailBlob = thumbnailDataUrl ? await dataUrlToBlob(thumbnailDataUrl) : null;
+            if (thumbnailBlob) {
+              const device = await getOrCreateDevice();
+              const thumbnailHash = await sha256Blob(thumbnailBlob);
+              loadedMeta = {
+                ...meta,
+                thumbnail: {
+                  mimeType: thumbnailBlob.type || "image/jpeg",
+                  byteLength: thumbnailBlob.size,
+                  sha256: thumbnailHash,
+                },
+                revision: {
+                  counter: meta.revision.counter + 1,
+                  deviceId: device.deviceId,
+                },
+                updatedAt: Date.now(),
+              };
+              await db.transaction("rw", [db.videos, db.thumbnailBlobs], async () => {
+                await db.videos.put(loadedMeta);
+                await db.thumbnailBlobs.put({ id: meta.id, blob: thumbnailBlob });
+              });
+              thumbnailRecord = { id: meta.id, blob: thumbnailBlob };
+            }
+          }
           const thumbnailUri = thumbnailRecord
             ? URL.createObjectURL(thumbnailRecord.blob)
-            : meta.thumbnailUri;
+            : loadedMeta.thumbnailUri;
           if (thumbnailRecord && thumbnailUri) {
-            thumbnailUrlsRef.current[meta.id] = thumbnailUri;
+            thumbnailUrlsRef.current[loadedMeta.id] = thumbnailUri;
           }
           if (blobRecord) {
             const url = URL.createObjectURL(blobRecord.blob);
-            objectUrlsRef.current[meta.id] = url;
+            objectUrlsRef.current[loadedMeta.id] = url;
             loadedVideos.push({
-              ...meta,
+              ...loadedMeta,
               thumbnailUri,
               sourceUri: url,
             });
-            if (meta.bpmDetectionStatus === "detecting") {
-              queueDetection(meta.id);
+            if (loadedMeta.bpmDetectionStatus === "detecting") {
+              queueDetection(loadedMeta.id);
             }
           } else {
             loadedVideos.push({
-              ...meta,
+              ...loadedMeta,
               thumbnailUri,
               sourceUri: "",
             });
