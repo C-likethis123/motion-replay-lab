@@ -8,6 +8,31 @@ export async function createSyncManifest(): Promise<SyncManifestEntry[]> {
   return entries.sort((left, right) => left.id.localeCompare(right.id));
 }
 
+export async function prepareVideoForSync(video: VideoMetadata): Promise<VideoMetadata> {
+  if (video.deletedAt) return video;
+  const mediaBlob = await db.videoBlobs.get(video.id);
+  if (!mediaBlob) throw new Error(`Video file missing for ${video.title}`);
+  const thumbnailBlob = await db.thumbnailBlobs.get(video.id);
+  const mediaHash = video.media?.sha256 ?? await sha256Blob(mediaBlob.blob);
+  const thumbnailHash = thumbnailBlob ? video.thumbnail?.sha256 ?? await sha256Blob(thumbnailBlob.blob) : null;
+  const next: VideoMetadata = {
+    ...video,
+    media: {
+      fileName: video.media?.fileName ?? video.title,
+      mimeType: video.media?.mimeType ?? (mediaBlob.blob.type || "application/octet-stream"),
+      byteLength: mediaBlob.blob.size,
+      sha256: mediaHash,
+    },
+    thumbnail: thumbnailBlob ? {
+      mimeType: video.thumbnail?.mimeType ?? (thumbnailBlob.blob.type || "image/jpeg"),
+      byteLength: thumbnailBlob.blob.size,
+      sha256: thumbnailHash,
+    } : undefined,
+  };
+  await db.videos.put(next);
+  return next;
+}
+
 export function compareSyncManifests(
   localEntries: SyncManifestEntry[],
   remoteEntries: SyncManifestEntry[],
@@ -23,29 +48,16 @@ export function compareSyncManifests(
 }
 
 async function createManifestEntry(video: VideoMetadata): Promise<SyncManifestEntry> {
-  const mediaHash = await ensureMediaHash(video);
+  const prepared = await prepareVideoForSync(video);
   return {
-    id: video.id,
-    title: video.title,
-    revision: video.revision,
-    updatedAt: video.updatedAt,
-    deletedAt: video.deletedAt,
-    mediaHash,
-    metadataHash: await hashMetadata(video),
+    id: prepared.id,
+    title: prepared.title,
+    revision: prepared.revision,
+    updatedAt: prepared.updatedAt,
+    deletedAt: prepared.deletedAt,
+    mediaHash: prepared.media?.sha256 ?? null,
+    metadataHash: await hashMetadata(prepared),
   };
-}
-
-async function ensureMediaHash(video: VideoMetadata) {
-  if (video.deletedAt) return null;
-  if (video.media?.sha256) return video.media.sha256;
-
-  const blob = await db.videoBlobs.get(video.id);
-  if (!blob) return null;
-  const sha256 = await sha256Blob(blob.blob);
-  if (video.media) {
-    await db.videos.update(video.id, { media: { ...video.media, sha256 } });
-  }
-  return sha256;
 }
 
 async function hashMetadata(video: VideoMetadata) {

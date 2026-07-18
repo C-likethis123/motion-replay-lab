@@ -1,4 +1,5 @@
 import { db, type VideoMetadata } from "../db";
+import { prepareVideoForSync } from "./manifest";
 import { PairingConnection } from "./pairing";
 import { requestStorageReadiness, sha256Blob } from "./storage";
 import { SYNC_PROTOCOL_VERSION, type SyncControlMessage, type SyncTransferProgress, type SyncVideoRecord } from "./types";
@@ -255,6 +256,7 @@ export class SyncTransferEngine {
 }
 
 async function syncRecordFromMetadata(metadata: VideoMetadata): Promise<SyncVideoRecord> {
+  const prepared = await prepareVideoForSync(metadata);
   const {
     thumbnailUri,
     bpmDetectionStatus,
@@ -262,18 +264,18 @@ async function syncRecordFromMetadata(metadata: VideoMetadata): Promise<SyncVide
     media,
     thumbnail,
     ...syncable
-  } = metadata;
+  } = prepared;
   void thumbnailUri;
   void bpmDetectionStatus;
   void bpmDetectionError;
-  if (metadata.deletedAt) {
+  if (prepared.deletedAt) {
     return {
       ...syncable,
       media: { fileName: "deleted", mimeType: "application/octet-stream", byteLength: 0, sha256: "deleted" },
       thumbnail: undefined,
     };
   }
-  if (!media?.sha256) throw new Error(`Missing media hash for ${metadata.title}`);
+  if (!media?.sha256) throw new Error(`Missing media hash for ${prepared.title}`);
   return {
     ...syncable,
     media: { ...media, sha256: media.sha256 },
