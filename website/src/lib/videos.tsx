@@ -248,6 +248,10 @@ export function VideosProvider({ children }: { children: ReactNode }) {
       }
     }
     loadVideos();
+    window.addEventListener("dance-replay-library-changed", loadVideos);
+    return () => {
+      window.removeEventListener("dance-replay-library-changed", loadVideos);
+    };
   }, [queueDetection]);
 
   const deleteVideo = useCallback(async (id: string) => {

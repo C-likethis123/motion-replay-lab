@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { getSyncFirebaseClient } from "./firebase";
 import { getOrCreateDevice } from "./storage";
+import { SYNC_PROTOCOL_VERSION, type SyncControlMessage } from "./types";
 
 export type PairingRole = "creator" | "joiner";
 export type PairingStatus =
@@ -57,6 +58,8 @@ type SessionDoc = {
 };
 
 type Listener = (state: PairingState) => void;
+type ControlListener = (message: SyncControlMessage) => void;
+type BinaryListener = (data: ArrayBuffer) => void;
 
 const sessionTtlMs = 5 * 60 * 1000;
 
@@ -134,6 +137,10 @@ export class PairingConnection {
     error: null,
   };
   private listeners = new Set<Listener>();
+  private controlListeners = new Set<ControlListener>();
+  private binaryListeners = new Set<BinaryListener>();
+  private deviceId: string | null = null;
+  private deviceName: string | null = null;
   private pc: RTCPeerConnection | null = null;
   private control: RTCDataChannel | null = null;
   private binary: RTCDataChannel | null = null;
@@ -149,10 +156,48 @@ export class PairingConnection {
     return () => this.listeners.delete(listener);
   }
 
+  onControlMessage(listener: ControlListener) {
+    this.controlListeners.add(listener);
+    return () => {
+      this.controlListeners.delete(listener);
+    };
+  }
+
+  sendControl(message: SyncControlMessage) {
+    if (this.control?.readyState !== "open") throw new Error("Control channel is not open");
+    this.control.send(JSON.stringify(message));
+  }
+
+  onBinaryMessage(listener: BinaryListener) {
+    this.binaryListeners.add(listener);
+    return () => {
+      this.binaryListeners.delete(listener);
+    };
+  }
+
+  sendBinary(data: ArrayBuffer) {
+    if (this.binary?.readyState !== "open") throw new Error("Binary channel is not open");
+    this.binary.send(data);
+  }
+
+  get binaryBufferedAmount() {
+    return this.binary?.bufferedAmount ?? 0;
+  }
+
+  waitForBinaryDrain(maxBufferedAmount: number) {
+    if (!this.binary || this.binary.bufferedAmount <= maxBufferedAmount) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      this.binary!.bufferedAmountLowThreshold = maxBufferedAmount;
+      this.binary!.onbufferedamountlow = () => resolve();
+    });
+  }
+
   async create() {
     this.assertSupported();
     const client = await getSyncFirebaseClient();
     const device = await getOrCreateDevice();
+    this.deviceId = device.deviceId;
+    this.deviceName = device.displayName;
     const code = randomPairingCode();
     const secret = randomSecret();
     const sessionRef = doc(collection(client.db, "syncSessions"));
@@ -195,6 +240,8 @@ export class PairingConnection {
     this.assertSupported();
     const client = await getSyncFirebaseClient();
     const device = await getOrCreateDevice();
+    this.deviceId = device.deviceId;
+    this.deviceName = device.displayName;
     const code = pairingCode.trim().toUpperCase();
     const secret = pairingSecret.trim();
     const codeRef = doc(client.db, "syncPairingCodes", code);
@@ -365,15 +412,40 @@ export class PairingConnection {
         binaryOpen: this.binary?.readyState === "open",
       });
       if (this.control?.readyState === "open") {
-        this.control.send(JSON.stringify({ type: "hello", protocolVersion: 1 }));
+        this.sendControl({
+          type: "hello",
+          protocolVersion: SYNC_PROTOCOL_VERSION,
+          deviceId: this.deviceId ?? "unknown",
+          deviceName: this.deviceName ?? "Browser",
+          capabilities: { manifests: true, metadata: true, binary: true },
+        });
       }
     };
+    channel.onmessage = (event) => this.handleControlMessage(channel, event);
+    if (channel.label === "binary") {
+      channel.onmessage = (event) => {
+        if (event.data instanceof ArrayBuffer) this.binaryListeners.forEach((listener) => listener(event.data));
+      };
+    }
     channel.onclose = () => {
       this.patch({
         controlOpen: this.control?.readyState === "open",
         binaryOpen: this.binary?.readyState === "open",
       });
     };
+  }
+
+  private handleControlMessage(channel: RTCDataChannel, event: MessageEvent) {
+    if (channel.label !== "control" || typeof event.data !== "string") return;
+    try {
+      const message = JSON.parse(event.data) as SyncControlMessage;
+      if (message.protocolVersion !== SYNC_PROTOCOL_VERSION) {
+        throw new Error("Sync protocol version mismatch");
+      }
+      this.controlListeners.forEach((listener) => listener(message));
+    } catch (error) {
+      this.fail(error);
+    }
   }
 
   private async close(status: PairingStatus) {
