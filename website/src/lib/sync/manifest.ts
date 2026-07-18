@@ -78,6 +78,9 @@ function compareEntry(local: SyncManifestEntry | undefined, remote: SyncManifest
 
   const localEntry = local!;
   const remoteEntry = remote!;
+  if (localEntry.deletedAt && remoteEntry.deletedAt) {
+    return { id: localEntry.id, title: localEntry.title, kind: "deleted", direction: "none" };
+  }
   if (sameEntry(localEntry, remoteEntry)) {
     return { id: localEntry.id, title: localEntry.title, kind: "same", direction: "none" };
   }
