@@ -174,7 +174,7 @@ export default function Sync() {
   const [error, setError] = useState<string | null>(null);
   const [localManifest, setLocalManifest] = useState<SyncManifestEntry[] | null>(null);
   const [remoteManifest, setRemoteManifest] = useState<SyncManifestEntry[] | null>(null);
-  const [progress, setProgress] = useState<SyncTransferProgress | null>(null);
+  const [progress, setProgress] = useState<SyncTransferProgress[]>([]);
   const support = useMemo(() => getBrowserPairingSupport(), []);
   const pairingMode = usePairingDeviceMode();
 
@@ -355,26 +355,28 @@ export default function Sync() {
             <div className="sync-comparison-list">
               {comparison.map((item) => (
                 <div key={item.id} className="sync-comparison-item">
-                  <span>{item.title}</span>
-                  <span className={`sync-comparison-kind sync-comparison-${item.kind}`}>{item.kind}</span>
-                  {item.kind === "conflict" ? (
-                    <div className="sync-conflict-actions">
-                      <button className="btn" onClick={() => resolveConflict(item.id, true)}>Keep This Device</button>
-                      <button className="btn" onClick={() => resolveConflict(item.id, false)}>Use Other Device</button>
+                  <div className="sync-comparison-main">
+                    <span>{item.title}</span>
+                    <span className={`sync-comparison-kind sync-comparison-${item.kind}`}>{item.kind}</span>
+                    {item.kind === "conflict" ? (
+                      <div className="sync-conflict-actions">
+                        <button className="btn" onClick={() => resolveConflict(item.id, true)}>Keep This Device</button>
+                        <button className="btn" onClick={() => resolveConflict(item.id, false)}>Use Other Device</button>
+                      </div>
+                    ) : <span>{item.direction}</span>}
+                  </div>
+                  {progress.filter((transfer) => transfer.videoId === item.id).map((transfer) => (
+                    <div key={`${transfer.direction}-${transfer.kind}`} className="sync-row-progress">
+                      <span>{transfer.direction} {transfer.kind}</span>
+                      <progress value={transfer.completedBytes} max={transfer.totalBytes} />
+                      <span>{Math.round((transfer.completedBytes / transfer.totalBytes) * 100)}%</span>
                     </div>
-                  ) : <span>{item.direction}</span>}
+                  ))}
                 </div>
               ))}
             </div>
           )}
           {localManifest && remoteManifest && comparison.length === 0 && <p>Both libraries are empty.</p>}
-          {progress && (
-            <div className="sync-transfer-progress">
-              <span>{progress.direction} {progress.kind}: {progress.title}</span>
-              <progress value={progress.completedBytes} max={progress.totalBytes} />
-              <span>{Math.round((progress.completedBytes / progress.totalBytes) * 100)}%</span>
-            </div>
-          )}
         </section>
       )}
 

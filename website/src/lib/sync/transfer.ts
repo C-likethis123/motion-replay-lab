@@ -8,7 +8,7 @@ const CHUNK_SIZE = 32 * 1024;
 const MAX_BUFFERED_AMOUNT = 4 * 1024 * 1024;
 
 type TransferCallbacks = {
-  onProgress: (progress: SyncTransferProgress | null) => void;
+  onProgress: (progress: SyncTransferProgress[]) => void;
   onComplete: () => void;
   onError: (message: string) => void;
 };
@@ -30,6 +30,7 @@ export class SyncTransferEngine {
   private completionResolvers = new Map<string, () => void>();
   private acknowledgementResolvers = new Map<string, { target: number; resolve: () => void }>();
   private sendingProgress = new Map<string, SyncTransferProgress>();
+  private receivingProgress: SyncTransferProgress | null = null;
   private unsubscribers: (() => void)[] = [];
   private connection: PairingConnection;
   private callbacks: TransferCallbacks;
@@ -168,14 +169,15 @@ export class SyncTransferEngine {
       updatedAt: Date.now(),
     });
     this.incoming = { ...message, acknowledgedOffset, chain: Promise.resolve() };
-    this.callbacks.onProgress({
+    this.receivingProgress = {
       direction: "receiving",
       videoId: message.videoId,
       title: record.title,
       kind: message.kind,
       completedBytes: acknowledgedOffset,
       totalBytes: message.size,
-    });
+    };
+    this.publishProgress();
     this.connection.sendControl({ type: "file-ack", protocolVersion: SYNC_PROTOCOL_VERSION, transferId: message.transferId, acknowledgedOffset });
   }
 
@@ -189,7 +191,8 @@ export class SyncTransferEngine {
       incoming.acknowledgedOffset = offset + payload.byteLength;
       await db.syncTransfers.update(incoming.transferId, { acknowledgedOffset: incoming.acknowledgedOffset, updatedAt: Date.now() });
       const record = this.pendingRecords.get(incoming.videoId)!;
-      this.callbacks.onProgress({ direction: "receiving", videoId: incoming.videoId, title: record.title, kind: incoming.kind, completedBytes: incoming.acknowledgedOffset, totalBytes: incoming.size });
+      this.receivingProgress = { direction: "receiving", videoId: incoming.videoId, title: record.title, kind: incoming.kind, completedBytes: incoming.acknowledgedOffset, totalBytes: incoming.size };
+      this.publishProgress();
       this.connection.sendControl({ type: "file-ack", protocolVersion: SYNC_PROTOCOL_VERSION, transferId: incoming.transferId, acknowledgedOffset: incoming.acknowledgedOffset });
     }).catch((error) => this.fail(error));
   }
@@ -217,7 +220,8 @@ export class SyncTransferEngine {
       await db.syncTransfers.delete(transferId);
     });
     this.incoming = null;
-    this.callbacks.onProgress(null);
+    this.receivingProgress = null;
+    this.publishProgress();
     this.connection.sendControl({ type: "file-complete", protocolVersion: SYNC_PROTOCOL_VERSION, transferId });
     if (incoming.kind === "video") this.libraryChanged();
   }
@@ -228,7 +232,8 @@ export class SyncTransferEngine {
       await db.syncTransfers.delete(transferId);
     });
     if (this.incoming?.transferId === transferId) this.incoming = null;
-    this.callbacks.onProgress(null);
+    this.receivingProgress = null;
+    this.publishProgress();
   }
 
   private updateSendingProgress(transferId: string, completedBytes: number) {
@@ -246,7 +251,14 @@ export class SyncTransferEngine {
   }
 
   private publishSendingProgress() {
-    this.callbacks.onProgress(this.sendingProgress.values().next().value ?? null);
+    this.publishProgress();
+  }
+
+  private publishProgress() {
+    this.callbacks.onProgress([
+      ...this.sendingProgress.values(),
+      ...(this.receivingProgress ? [this.receivingProgress] : []),
+    ]);
   }
 
   private libraryChanged() {
