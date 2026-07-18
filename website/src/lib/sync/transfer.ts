@@ -54,6 +54,10 @@ export class SyncTransferEngine {
     this.connection.sendControl({ type: "sync-request", protocolVersion: SYNC_PROTOCOL_VERSION, videoIds });
   }
 
+  async sendVideos(videoIds: string[]) {
+    for (const videoId of videoIds) await this.sendVideo(videoId);
+  }
+
   private async handleControlMessage(message: SyncControlMessage) {
     switch (message.type) {
       case "sync-request":

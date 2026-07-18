@@ -260,6 +260,14 @@ export default function Sync() {
     transferEngine.current?.requestVideos(ids);
   }, [comparison]);
 
+  const resolveConflict = useCallback((videoId: string, keepThisDevice: boolean) => {
+    setError(null);
+    const action = keepThisDevice
+      ? transferEngine.current?.sendVideos([videoId])
+      : Promise.resolve(transferEngine.current?.requestVideos([videoId]));
+    void action?.catch((caught) => setError(caught instanceof Error ? caught.message : String(caught)));
+  }, []);
+
   useEffect(() => {
     if (!state.controlOpen || autoManifestAttempted.current) return;
     autoManifestAttempted.current = true;
@@ -349,7 +357,12 @@ export default function Sync() {
                 <div key={item.id} className="sync-comparison-item">
                   <span>{item.title}</span>
                   <span className={`sync-comparison-kind sync-comparison-${item.kind}`}>{item.kind}</span>
-                  <span>{item.direction}</span>
+                  {item.kind === "conflict" ? (
+                    <div className="sync-conflict-actions">
+                      <button className="btn" onClick={() => resolveConflict(item.id, true)}>Keep This Device</button>
+                      <button className="btn" onClick={() => resolveConflict(item.id, false)}>Use Other Device</button>
+                    </div>
+                  ) : <span>{item.direction}</span>}
                 </div>
               ))}
             </div>

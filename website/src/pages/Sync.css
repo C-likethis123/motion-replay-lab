@@ -178,6 +178,17 @@
   white-space: nowrap;
 }
 
+.sync-conflict-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+}
+
+.sync-conflict-actions .btn {
+  min-width: 0;
+}
+
 .sync-comparison-kind {
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--radius-xs);
