@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { toDataURL } from "qrcode";
-import { Camera, Plus, X } from "lucide-react";
+import { Camera, Plus, RefreshCw, X } from "lucide-react";
 import {
   getBrowserPairingSupport,
   PairingConnection,
@@ -333,6 +333,10 @@ export default function Sync() {
             {otherDeviceConnected ? "Other device connected" : "Other device not connected"}
           </p>
           <div className="sync-actions">
+            <button className="btn" disabled={otherDeviceConnected} onClick={() => run(() => connection.current.reconnect())}>
+              <RefreshCw size={18} />
+              <span>Reconnect</span>
+            </button>
             <button className="btn btn-danger" onClick={() => run(() => connection.current.cancel())}>
               <X size={18} />
               <span>Cancel</span>

@@ -52,6 +52,8 @@ type SessionDoc = {
   joinerConfirmed?: boolean;
   offer?: RTCSessionDescriptionInit;
   answer?: RTCSessionDescriptionInit;
+  connectionAttempt?: string;
+  reconnectRequestedAt?: number;
   status?: string;
   secret?: string;
   expiresAt?: number;
@@ -147,8 +149,11 @@ export class PairingConnection {
   private sessionRef: DocumentReference | null = null;
   private codeRef: DocumentReference | null = null;
   private unsubscribers: Unsubscribe[] = [];
+  private peerUnsubscribers: Unsubscribe[] = [];
   private hasStartedConnection = false;
   private hasAnsweredOffer = false;
+  private connectionAttempt: string | null = null;
+  private lastReconnectRequest: number | null = null;
 
   subscribe(listener: Listener) {
     this.listeners.add(listener);
@@ -296,6 +301,19 @@ export class PairingConnection {
     await this.close("closed");
   }
 
+  async reconnect() {
+    if (!this.sessionRef || !this.state.role) throw new Error("No pairing session");
+    if (this.state.role === "creator") {
+      const snapshot = await getDoc(this.sessionRef);
+      if (!snapshot.exists()) throw new Error("Pairing session expired");
+      await this.beginReconnect(snapshot.data() as SessionDoc);
+      return;
+    }
+    this.resetPeer();
+    this.patch({ status: "connecting", controlOpen: false, binaryOpen: false });
+    await updateDoc(this.sessionRef, { reconnectRequestedAt: Date.now() });
+  }
+
   private watchSession() {
     if (!this.sessionRef || !this.state.role) return;
     this.unsubscribers.push(
@@ -313,6 +331,26 @@ export class PairingConnection {
           peerConfirmed,
           status: data.status === "joined" && isCreator ? "joined" : this.state.status,
         });
+
+        if (isCreator && data.reconnectRequestedAt && data.reconnectRequestedAt !== this.lastReconnectRequest) {
+          this.lastReconnectRequest = data.reconnectRequestedAt;
+          void this.beginReconnect(data).catch((error) => this.fail(error));
+          return;
+        }
+
+        if (
+          data.connectionAttempt
+          && data.connectionAttempt !== this.connectionAttempt
+          && localConfirmed
+          && peerConfirmed
+        ) {
+          this.connectionAttempt = data.connectionAttempt;
+          this.resetPeer();
+          this.hasAnsweredOffer = false;
+          this.hasStartedConnection = true;
+          void this.startConnection(data, data.connectionAttempt).catch((error) => this.fail(error));
+          return;
+        }
 
         if (localConfirmed && peerConfirmed && !this.hasStartedConnection) {
           this.hasStartedConnection = true;
@@ -336,10 +374,13 @@ export class PairingConnection {
     );
   }
 
-  private async startConnection(data: SessionDoc) {
+  private async startConnection(data: SessionDoc, requestedAttempt?: string) {
     this.patch({ status: "connecting" });
-    this.startPeer();
     if (this.state.role === "creator") {
+      const connectionAttempt = requestedAttempt ?? randomSecret();
+      this.connectionAttempt = connectionAttempt;
+      await updateDoc(this.sessionRef!, { connectionAttempt, offer: null, answer: null, status: "connecting" });
+      this.startPeer(connectionAttempt);
       this.attachChannel(this.pc!.createDataChannel("control", { ordered: true }));
       this.attachChannel(this.pc!.createDataChannel("binary", { ordered: true }));
       const offer = await this.pc!.createOffer();
@@ -348,7 +389,11 @@ export class PairingConnection {
         offer: this.pc!.localDescription?.toJSON(),
         status: "connecting",
       });
-    } else if (data.offer) {
+    } else {
+      this.connectionAttempt = requestedAttempt ?? data.connectionAttempt ?? "initial";
+      this.startPeer(this.connectionAttempt);
+    }
+    if (this.state.role === "joiner" && data.offer) {
       await this.answerOffer(data.offer);
     }
   }
@@ -358,7 +403,7 @@ export class PairingConnection {
     this.hasAnsweredOffer = true;
     if (!this.pc) {
       this.patch({ status: "connecting" });
-      this.startPeer();
+      this.startPeer(this.connectionAttempt ?? "initial");
     }
     if (this.pc!.signalingState !== "stable") return;
     await this.pc!.setRemoteDescription(offer);
@@ -370,13 +415,13 @@ export class PairingConnection {
     });
   }
 
-  private startPeer() {
+  private startPeer(connectionAttempt: string) {
     this.pc = makePeerConnection();
     this.pc.onicecandidate = async (event) => {
       if (!event.candidate || !this.sessionRef || !this.state.role) return;
       if (event.candidate.candidate.includes(" typ relay ")) return;
       await setDoc(
-        doc(collection(this.sessionRef, `${this.state.role}Candidates`)),
+        doc(collection(this.sessionRef, `${this.state.role}Candidates_${connectionAttempt}`)),
         event.candidate.toJSON()
       );
     };
@@ -385,7 +430,6 @@ export class PairingConnection {
       if (status === "connected" && this.pc) {
         const pair = await selectedCandidatePair(this.pc);
         this.patch({ status: "connected", selectedCandidatePair: pair, error: null });
-        await deleteDoc(this.codeRef!).catch(() => undefined);
       } else if (status === "failed" || status === "disconnected") {
         this.patch({ status: "failed" });
       }
@@ -393,8 +437,8 @@ export class PairingConnection {
     this.pc.ondatachannel = (event) => this.attachChannel(event.channel);
 
     const remoteRole = this.state.role === "creator" ? "joiner" : "creator";
-    this.unsubscribers.push(
-      onSnapshot(collection(this.sessionRef!, `${remoteRole}Candidates`), (snapshot) => {
+    this.peerUnsubscribers.push(
+      onSnapshot(collection(this.sessionRef!, `${remoteRole}Candidates_${connectionAttempt}`), (snapshot) => {
         snapshot.docChanges().forEach((change) => {
           if (change.type === "added") {
             this.pc?.addIceCandidate(change.doc.data()).catch((error) => this.fail(error));
@@ -453,12 +497,29 @@ export class PairingConnection {
   private async close(status: PairingStatus) {
     this.unsubscribers.forEach((unsubscribe) => unsubscribe());
     this.unsubscribers = [];
-    this.control?.close();
-    this.binary?.close();
-    this.pc?.close();
+    this.resetPeer();
     if (this.codeRef) await deleteDoc(this.codeRef).catch(() => undefined);
     if (this.sessionRef) await deleteDoc(this.sessionRef).catch(() => undefined);
     this.patch({ status });
+  }
+
+  private async beginReconnect(data: SessionDoc) {
+    this.resetPeer();
+    this.hasStartedConnection = false;
+    this.hasAnsweredOffer = false;
+    this.connectionAttempt = randomSecret();
+    await this.startConnection(data, this.connectionAttempt);
+  }
+
+  private resetPeer() {
+    this.peerUnsubscribers.forEach((unsubscribe) => unsubscribe());
+    this.peerUnsubscribers = [];
+    this.control?.close();
+    this.binary?.close();
+    this.pc?.close();
+    this.control = null;
+    this.binary = null;
+    this.pc = null;
   }
 
   private assertSupported() {
