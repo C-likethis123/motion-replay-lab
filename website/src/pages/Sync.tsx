@@ -65,6 +65,14 @@ function usePairingDeviceMode() {
   return mode;
 }
 
+function getConnectionMessage(status: PairingState["status"]) {
+  if (status === "connected") return "Other device connected";
+  if (status === "waiting") return "Waiting for other device";
+  if (status === "joined" || status === "confirming" || status === "connecting") return "Connecting to other device";
+  if (status === "failed" || status === "closed") return "Other device not connected";
+  return "Create or join a session to connect another device";
+}
+
 function PairingQr({ code, secret }: { code: string; secret: string }) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
@@ -255,6 +263,16 @@ export default function Sync() {
     return compareSyncManifests(localManifest, remoteManifest);
   }, [localManifest, remoteManifest]);
   const otherDeviceConnected = state.status === "connected";
+  const otherDeviceConnecting = state.status === "waiting"
+    || state.status === "joined"
+    || state.status === "confirming"
+    || state.status === "connecting";
+  const connectionStatusClass = otherDeviceConnected
+    ? "is-connected"
+    : otherDeviceConnecting
+      ? "is-connecting"
+      : "";
+  const connectionMessage = getConnectionMessage(state.status);
 
   const requestChanges = useCallback(() => {
     const ids = comparison.filter((item) => item.direction === "pull").map((item) => item.id);
@@ -332,8 +350,8 @@ export default function Sync() {
       {state.role && (
         <section className="sync-panel">
           <h2>Connection</h2>
-          <p className={`sync-connection-status ${otherDeviceConnected ? "is-connected" : ""}`}>
-            {otherDeviceConnected ? "Other device connected" : "Other device not connected"}
+          <p className={`sync-connection-status ${connectionStatusClass}`}>
+            {connectionMessage}
           </p>
           <div className="sync-actions">
             <button className="btn" disabled={otherDeviceConnected} onClick={() => run(() => connection.current.reconnect())}>

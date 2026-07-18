@@ -240,6 +240,11 @@
   color: var(--color-danger);
 }
 
+.sync-connection-status.is-connecting {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+}
+
 .sync-connection-status.is-connected {
   background: var(--color-accent-soft);
   color: var(--color-accent-text);
