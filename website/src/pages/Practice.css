@@ -150,7 +150,7 @@
 .tags-edit-container {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
+  align-items: center;
   gap: var(--spacing-sm);
   width: 100%;
 }

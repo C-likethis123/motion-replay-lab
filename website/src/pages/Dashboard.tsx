@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Check, Edit3, Plus, Play, Search, Trash2, X } from "lucide-react";
+import { Check, Edit3, Plus, Play, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { useVideos } from "../lib/videos";
 import { generateVideoThumbnail } from "../lib/videoThumbnails";
 import "./Dashboard.css";
@@ -125,6 +125,11 @@ export default function Dashboard() {
             <Plus size={18} />
             <span>Import Video</span>
           </button>
+
+          <Link to="/sync" className="btn btn-secondary">
+            <RefreshCw size={18} />
+            <span>Sync</span>
+          </Link>
           
           <input
             type="file"

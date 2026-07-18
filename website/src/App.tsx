@@ -14,10 +14,6 @@ function Layout({ children }: { children: React.ReactNode }) {
         <Link to="/" className="logo">
           <span>💃</span> Motion Replay Lab
         </Link>
-        <Link to="/sync" className="nav-link">
-          Sync
-        </Link>
-
       </header>
       <main style={{ flex: 1, display: "flex", flexDirection: "column" }}>
         {children}
