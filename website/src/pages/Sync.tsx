@@ -262,6 +262,9 @@ export default function Sync() {
     if (!localManifest || !remoteManifest) return [];
     return compareSyncManifests(localManifest, remoteManifest);
   }, [localManifest, remoteManifest]);
+  const visibleComparison = useMemo(() => {
+    return comparison.filter((item) => item.direction !== "none");
+  }, [comparison]);
   const otherDeviceConnected = state.status === "connected";
   const otherDeviceConnecting = state.status === "waiting"
     || state.status === "joined"
@@ -376,9 +379,9 @@ export default function Sync() {
           </div>
 
           {localManifest && !remoteManifest && <p>Waiting for peer library.</p>}
-          {comparison.length > 0 && (
+          {visibleComparison.length > 0 && (
             <div className="sync-comparison-list">
-              {comparison.map((item) => (
+              {visibleComparison.map((item) => (
                 <div key={item.id} className="sync-comparison-item">
                   <div className="sync-comparison-main">
                     <span>{item.title}</span>
@@ -401,7 +404,7 @@ export default function Sync() {
               ))}
             </div>
           )}
-          {localManifest && remoteManifest && comparison.length === 0 && <p>Both libraries are empty.</p>}
+          {localManifest && remoteManifest && visibleComparison.length === 0 && <p>No changes to sync.</p>}
         </section>
       )}
 

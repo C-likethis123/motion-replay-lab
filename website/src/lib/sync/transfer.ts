@@ -4,7 +4,8 @@ import { PairingConnection } from "./pairing";
 import { requestStorageReadiness, sha256Blob } from "./storage";
 import { SYNC_PROTOCOL_VERSION, type SyncControlMessage, type SyncTransferProgress, type SyncVideoRecord } from "./types";
 
-const CHUNK_SIZE = 32 * 1024;
+const CHUNK_SIZE = 256 * 1024;
+const ACK_INTERVAL = 1024 * 1024;
 const MAX_BUFFERED_AMOUNT = 4 * 1024 * 1024;
 
 type TransferCallbacks = {
@@ -21,6 +22,8 @@ type IncomingTransfer = {
   sha256: string;
   chunkSize: number;
   acknowledgedOffset: number;
+  lastAckOffset: number;
+  chunks: Blob[];
   chain: Promise<void>;
 };
 
@@ -162,8 +165,7 @@ export class SyncTransferEngine {
     const readiness = await requestStorageReadiness();
     if (!readiness.canReceiveBytes(message.size)) throw new Error("Not enough browser storage for this file");
 
-    const existing = await db.syncTransfers.get(message.transferId);
-    const acknowledgedOffset = existing?.acknowledgedOffset ?? 0;
+    const acknowledgedOffset = 0;
     await db.syncTransfers.put({
       id: message.transferId,
       videoId: message.videoId,
@@ -173,7 +175,7 @@ export class SyncTransferEngine {
       acknowledgedOffset,
       updatedAt: Date.now(),
     });
-    this.incoming = { ...message, acknowledgedOffset, chain: Promise.resolve() };
+    this.incoming = { ...message, acknowledgedOffset, lastAckOffset: acknowledgedOffset, chunks: [], chain: Promise.resolve() };
     this.receivingProgress = {
       direction: "receiving",
       videoId: message.videoId,
@@ -192,13 +194,22 @@ export class SyncTransferEngine {
     const { sequence, payload } = decodeChunk(data);
     const offset = sequence * incoming.chunkSize;
     incoming.chain = incoming.chain.then(async () => {
-      await db.syncChunks.put({ transferId: incoming.transferId, sequence, offset, blob: new Blob([payload]) });
+      if (offset !== incoming.acknowledgedOffset) throw new Error("Received file chunks out of order");
+      incoming.chunks.push(new Blob([payload]));
       incoming.acknowledgedOffset = offset + payload.byteLength;
+      const shouldAck = incoming.acknowledgedOffset >= incoming.size
+        || incoming.acknowledgedOffset - incoming.lastAckOffset >= ACK_INTERVAL;
+      if (!shouldAck) return;
+
+      incoming.lastAckOffset = incoming.acknowledgedOffset;
       await db.syncTransfers.update(incoming.transferId, { acknowledgedOffset: incoming.acknowledgedOffset, updatedAt: Date.now() });
-      const record = this.pendingRecords.get(incoming.videoId)!;
-      this.receivingProgress = { direction: "receiving", videoId: incoming.videoId, title: record.title, kind: incoming.kind, completedBytes: incoming.acknowledgedOffset, totalBytes: incoming.size };
-      this.publishProgress();
-      this.connection.sendControl({ type: "file-ack", protocolVersion: SYNC_PROTOCOL_VERSION, transferId: incoming.transferId, acknowledgedOffset: incoming.acknowledgedOffset });
+      this.updateReceivingProgress(incoming);
+      this.connection.sendControl({
+        type: "file-ack",
+        protocolVersion: SYNC_PROTOCOL_VERSION,
+        transferId: incoming.transferId,
+        acknowledgedOffset: incoming.acknowledgedOffset,
+      });
     }).catch((error) => this.fail(error));
   }
 
@@ -206,8 +217,7 @@ export class SyncTransferEngine {
     const incoming = this.incoming;
     if (!incoming || incoming.transferId !== transferId) throw new Error("Unexpected file end");
     await incoming.chain;
-    const chunks = await db.syncChunks.where("transferId").equals(transferId).sortBy("sequence");
-    const blob = new Blob(chunks.map((chunk) => chunk.blob));
+    const blob = new Blob(incoming.chunks);
     if (blob.size !== incoming.size || await sha256Blob(blob) !== incoming.sha256) {
       await this.discardIncoming(transferId);
       throw new Error("Received file checksum failed");
@@ -246,6 +256,19 @@ export class SyncTransferEngine {
     if (!progress) return;
     this.sendingProgress.set(transferId, { ...progress, completedBytes: Math.min(completedBytes, progress.totalBytes) });
     this.publishSendingProgress();
+  }
+
+  private updateReceivingProgress(incoming: IncomingTransfer) {
+    const record = this.pendingRecords.get(incoming.videoId)!;
+    this.receivingProgress = {
+      direction: "receiving",
+      videoId: incoming.videoId,
+      title: record.title,
+      kind: incoming.kind,
+      completedBytes: incoming.acknowledgedOffset,
+      totalBytes: incoming.size,
+    };
+    this.publishProgress();
   }
 
   private resolveAcknowledgement(transferId: string, acknowledgedOffset: number) {
