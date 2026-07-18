@@ -189,15 +189,15 @@
   }
 
   .practice-title-bar {
-    order: 3;
-  }
-
-  .practice-player-container {
     order: 1;
   }
 
-  .practice-main-content > .playback-controls {
+  .practice-player-container {
     order: 2;
+  }
+
+  .practice-main-content > .playback-controls {
+    order: 3;
   }
 
   .practice-layout-grid {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { toDataURL } from "qrcode";
-import { Camera, Check, Link2, Plus, X } from "lucide-react";
+import { Camera, Check, Plus, X } from "lucide-react";
 import {
   getBrowserPairingSupport,
   PairingConnection,
@@ -234,12 +234,6 @@ export default function Sync() {
             <div className="sync-actions">
               <QrScanner onScan={handleQrScan} onError={setError} />
             </div>
-            <input className="sync-input" value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="Pairing code" />
-            <input className="sync-input" value={secret} onChange={(event) => setSecret(event.target.value)} placeholder="Pairing secret" />
-            <button className="btn btn-primary" disabled={!support.supported || !code || !secret} onClick={() => run(() => connection.current.join(code, secret))}>
-              <Link2 size={18} />
-              <span>Join Session</span>
-            </button>
           </section>
         )}
 
