@@ -173,7 +173,6 @@
 .sync-comparison-main {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--spacing-md);
 }
 
@@ -182,6 +181,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.sync-comparison-main > :last-child {
+  margin-left: auto;
 }
 
 .sync-conflict-actions {

@@ -28,6 +28,7 @@ export class SyncTransferEngine {
   private pendingRecords = new Map<string, SyncVideoRecord>();
   private incoming: IncomingTransfer | null = null;
   private completionResolvers = new Map<string, () => void>();
+  private startResolvers = new Map<string, () => void>();
   private acknowledgementResolvers = new Map<string, { target: number; resolve: () => void }>();
   private sendingProgress = new Map<string, SyncTransferProgress>();
   private receivingProgress: SyncTransferProgress | null = null;
@@ -71,6 +72,8 @@ export class SyncTransferEngine {
         await this.startIncomingFile(message);
         break;
       case "file-ack":
+        this.startResolvers.get(message.transferId)?.();
+        this.startResolvers.delete(message.transferId);
         this.updateSendingProgress(message.transferId, message.acknowledgedOffset);
         this.resolveAcknowledgement(message.transferId, message.acknowledgedOffset);
         break;
@@ -78,6 +81,7 @@ export class SyncTransferEngine {
         await this.finishIncomingFile(message.transferId);
         break;
       case "file-complete":
+        if (this.sendingProgress.get(message.transferId)?.kind === "video") this.callbacks.onComplete();
         this.completionResolvers.get(message.transferId)?.();
         this.completionResolvers.delete(message.transferId);
         break;
@@ -108,6 +112,11 @@ export class SyncTransferEngine {
     const transferId = crypto.randomUUID();
     this.sendingProgress.set(transferId, { direction: "sending", videoId, title, kind, completedBytes: 0, totalBytes: blob.size });
     this.publishSendingProgress();
+    const started = new Promise<void>((resolve) => this.startResolvers.set(transferId, resolve));
+    const completed = new Promise<void>((resolve) => this.completionResolvers.set(transferId, resolve));
+    const acknowledged = new Promise<void>((resolve) => {
+      this.acknowledgementResolvers.set(transferId, { target: blob.size, resolve });
+    });
     this.connection.sendControl({
       type: "file-start",
       protocolVersion: SYNC_PROTOCOL_VERSION,
@@ -118,11 +127,7 @@ export class SyncTransferEngine {
       sha256,
       chunkSize: CHUNK_SIZE,
     });
-
-    const completed = new Promise<void>((resolve) => this.completionResolvers.set(transferId, resolve));
-    const acknowledged = new Promise<void>((resolve) => {
-      this.acknowledgementResolvers.set(transferId, { target: blob.size, resolve });
-    });
+    await started;
     for (let offset = 0; offset < blob.size; offset += CHUNK_SIZE) {
       await this.connection.waitForBinaryDrain(MAX_BUFFERED_AMOUNT);
       const payload = await blob.slice(offset, Math.min(offset + CHUNK_SIZE, blob.size)).arrayBuffer();

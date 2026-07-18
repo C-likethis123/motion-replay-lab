@@ -215,6 +215,9 @@ export default function Sync() {
         manifestSent.current = false;
         setLocalManifest(null);
         setRemoteManifest(null);
+        void sendManifest().catch((caught) => {
+          setError(caught instanceof Error ? caught.message : String(caught));
+        });
       },
       onError: (message) => setError(message),
     });
@@ -223,7 +226,7 @@ export default function Sync() {
       engine.close();
       transferEngine.current = null;
     };
-  }, []);
+  }, [sendManifest]);
 
   useEffect(() => {
     if (autoJoinAttempted.current || !code || !secret) return;
