@@ -24,6 +24,7 @@ type IncomingTransfer = {
   acknowledgedOffset: number;
   lastAckOffset: number;
   chunks: Blob[];
+  pendingChunks: Map<number, ArrayBuffer>;
   chain: Promise<void>;
 };
 
@@ -175,7 +176,14 @@ export class SyncTransferEngine {
       acknowledgedOffset,
       updatedAt: Date.now(),
     });
-    this.incoming = { ...message, acknowledgedOffset, lastAckOffset: acknowledgedOffset, chunks: [], chain: Promise.resolve() };
+    this.incoming = {
+      ...message,
+      acknowledgedOffset,
+      lastAckOffset: acknowledgedOffset,
+      chunks: [],
+      pendingChunks: new Map(),
+      chain: Promise.resolve(),
+    };
     this.receivingProgress = {
       direction: "receiving",
       videoId: message.videoId,
@@ -194,23 +202,36 @@ export class SyncTransferEngine {
     const { sequence, payload } = decodeChunk(data);
     const offset = sequence * incoming.chunkSize;
     incoming.chain = incoming.chain.then(async () => {
-      if (offset !== incoming.acknowledgedOffset) throw new Error("Received file chunks out of order");
-      incoming.chunks.push(new Blob([payload]));
-      incoming.acknowledgedOffset = offset + payload.byteLength;
+      if (offset < incoming.acknowledgedOffset) return;
+      if (offset >= incoming.size) throw new Error("Received file chunk outside expected range");
+
+      incoming.pendingChunks.set(sequence, payload);
+      let nextSequence = Math.floor(incoming.acknowledgedOffset / incoming.chunkSize);
+
+      while (incoming.pendingChunks.has(nextSequence)) {
+        const nextPayload = incoming.pendingChunks.get(nextSequence)!;
+        incoming.pendingChunks.delete(nextSequence);
+        incoming.chunks.push(new Blob([nextPayload]));
+        incoming.acknowledgedOffset += nextPayload.byteLength;
+        nextSequence += 1;
+      }
+
       const shouldAck = incoming.acknowledgedOffset >= incoming.size
         || incoming.acknowledgedOffset - incoming.lastAckOffset >= ACK_INTERVAL;
-      if (!shouldAck) return;
-
-      incoming.lastAckOffset = incoming.acknowledgedOffset;
-      await db.syncTransfers.update(incoming.transferId, { acknowledgedOffset: incoming.acknowledgedOffset, updatedAt: Date.now() });
-      this.updateReceivingProgress(incoming);
-      this.connection.sendControl({
-        type: "file-ack",
-        protocolVersion: SYNC_PROTOCOL_VERSION,
-        transferId: incoming.transferId,
-        acknowledgedOffset: incoming.acknowledgedOffset,
-      });
+      if (shouldAck) await this.acknowledgeIncoming(incoming);
     }).catch((error) => this.fail(error));
+  }
+
+  private async acknowledgeIncoming(incoming: IncomingTransfer) {
+    incoming.lastAckOffset = incoming.acknowledgedOffset;
+    await db.syncTransfers.update(incoming.transferId, { acknowledgedOffset: incoming.acknowledgedOffset, updatedAt: Date.now() });
+    this.updateReceivingProgress(incoming);
+    this.connection.sendControl({
+      type: "file-ack",
+      protocolVersion: SYNC_PROTOCOL_VERSION,
+      transferId: incoming.transferId,
+      acknowledgedOffset: incoming.acknowledgedOffset,
+    });
   }
 
   private async finishIncomingFile(transferId: string) {
