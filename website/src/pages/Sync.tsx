@@ -251,6 +251,7 @@ export default function Sync() {
     if (!localManifest || !remoteManifest) return [];
     return compareSyncManifests(localManifest, remoteManifest);
   }, [localManifest, remoteManifest]);
+  const otherDeviceConnected = state.status === "connected";
 
   const requestChanges = useCallback(() => {
     const ids = comparison.filter((item) => item.direction === "pull").map((item) => item.id);
@@ -320,14 +321,9 @@ export default function Sync() {
       {state.role && (
         <section className="sync-panel">
           <h2>Connection</h2>
-          <div className="sync-metrics">
-            <span>Peer: {state.peerName ?? "-"}</span>
-            <span>You: {state.localConfirmed ? "confirmed" : "waiting"}</span>
-            <span>Peer: {state.peerConfirmed ? "confirmed" : "waiting"}</span>
-            <span>Control: {state.controlOpen ? "open" : "closed"}</span>
-            <span>Binary: {state.binaryOpen ? "open" : "closed"}</span>
-            <span>ICE: {state.selectedCandidatePair ?? "-"}</span>
-          </div>
+          <p className={`sync-connection-status ${otherDeviceConnected ? "is-connected" : ""}`}>
+            {otherDeviceConnected ? "Other device connected" : "Other device not connected"}
+          </p>
           <div className="sync-actions">
             <button className="btn btn-danger" onClick={() => run(() => connection.current.cancel())}>
               <X size={18} />

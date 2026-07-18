@@ -209,6 +209,18 @@
   color: var(--color-accent-text);
 }
 
+.sync-connection-status {
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-xs);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.sync-connection-status.is-connected {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+}
+
 .btn-danger {
   border-color: var(--color-danger-border);
   background: var(--color-danger-soft);
