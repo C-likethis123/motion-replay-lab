@@ -7,6 +7,18 @@ import { TagsInput } from "../components/TagsInput";
 
 import "./Practice.css";
 
+function isSpaceKey(e: KeyboardEvent) {
+  return e.key === " " || e.key === "Spacebar" || e.code === "Space";
+}
+
+function isTextEntryTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  if (target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return true;
+
+  return target instanceof HTMLInputElement && target.type !== "range";
+}
+
 export default function Practice() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -32,17 +44,20 @@ export default function Practice() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!player || !video || isEditingTitle || isEditingTags) return;
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (isTextEntryTarget(e.target)) return;
       const countSeconds = video.countSeconds || 1;
+      if (isSpaceKey(e)) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (player.isPlaying) {
+          player.pause();
+        } else {
+          player.play();
+        }
+        return;
+      }
+
       switch (e.key) {
-        case " ":
-          e.preventDefault();
-          if (player.isPlaying) {
-            player.pause();
-          } else {
-            player.play();
-          }
-          break;
         case "m": case "M": {
           const newMirrored = !mirrored;
           setMirrored(newMirrored);
@@ -58,8 +73,18 @@ export default function Practice() {
 
       }
     };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (!player || !video || isEditingTitle || isEditingTags) return;
+      if (isTextEntryTarget(e.target) || !isSpaceKey(e)) return;
+      e.preventDefault();
+      e.stopPropagation();
+    };
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
   }, [player, mirrored, video, updateVideo, isEditingTitle, isEditingTags]);
 
   // ... (handleSave logic)
