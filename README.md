@@ -1,26 +1,24 @@
 # dance
 
-## Build
+## Development
 
-Install dependencies before building:
+Install dependencies:
 
 ```sh
 npm ci
 ```
 
-The install step must run package lifecycle scripts. This applies the
-`expo-video-audio-extractor` Android patch via `patch-package`; builds can fail
-at `:expo-video-audio-extractor:compileReleaseKotlin` if install scripts are
-skipped.
+Start the web app:
 
-Build and install the Android release:
+```sh
+npm run dev
+```
+
+Build the web app:
 
 ```sh
 npm run build
 ```
-
-For EAS builds, no extra command is needed as long as the build does not use
-`npm ci --ignore-scripts` or `npm install --ignore-scripts`.
 
 ## Features
 
